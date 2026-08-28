@@ -1,8 +1,8 @@
 # Invisible Item Frames
 
 A Fabric mod that lets you shift right-click an item frame or a sign with an
-empty hand to toggle its visibility, and optionally makes frames and signs
-click-through so interactions reach whatever is behind them.
+empty hand to toggle its visibility, and optionally makes invisible frames
+and signs click-through so interactions reach whatever is behind them.
 
 ## Usage
 
@@ -33,10 +33,10 @@ ModMenu in singleplayer.
   hand toggles item frame visibility at all.
 - `affect_glow_item_frames` (true): whether glow item frames can also be
   toggled invisible. When false, glow item frames are left alone entirely.
-- `click_through_visible_frames` (false): interactions on a still-visible
-  frame reach the block behind it instead of the frame.
 - `click_through_invisible_frames` (true): interactions on an already
-  invisible frame reach the block behind it instead of the frame.
+  invisible frame reach the block behind it instead of the frame. Clicking
+  a visible frame keeps vanilla behaviour (rotating the item it holds);
+  there is deliberately no click-through for visible frames.
 - `enable_sign_toggle` (true): whether shift right-click with an empty hand
   toggles sign visibility at all.
 - `click_through_signs` (false): interactions on a sign reach the block it is
@@ -58,9 +58,13 @@ ModMenu in singleplayer.
   actually render an invisible item frame correctly on its own (vanilla
   supports that flag natively), but it does not know about the extra sign
   property and would desync on sign blockstates without the mod.
-- Click-through works by re-raycasting from just past the original hit point
-  out to the player's reach, so it works the same way regardless of how the
-  frame or sign is mounted (wall, ceiling, or standing).
+- Click-through works by walking the player's crosshair ray out to their
+  reach and skipping the frame or sign itself, so it targets exactly the
+  block the click would have reached without the frame or sign, regardless
+  of how it is mounted (wall, ceiling, or standing).
+- Toggling and click-through are decided on the server. With the mod
+  installed on the client, the click is sent as a dedicated packet outside
+  the vanilla interaction chain, so other mods cannot swallow it.
 
 ## Requirements
 
