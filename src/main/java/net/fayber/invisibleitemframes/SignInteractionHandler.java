@@ -1,8 +1,10 @@
 package net.fayber.invisibleitemframes;
 
 import net.fayber.invisibleitemframes.client.InvisibleItemFramesClient;
+import net.fayber.invisibleitemframes.client.InvisibleItemFramesClientKeybind;
 import net.fayber.invisibleitemframes.sign.SignProperties;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -12,26 +14,40 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.SignBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 
 /**
- * Handles shift right-click-with-empty-hand toggling of sign visibility, and
- * (when configured) forwards interactions to whatever block the sign is
- * mounted on instead of the sign itself.
+ * Handles the three-gesture interaction model for signs:
  *
- * <p>Unlike item frames, signs have no vanilla "invisible" flag, so this mod
- * adds its own {@link SignProperties#INVISIBLE} blockstate property (see
+ * <ul>
+ *   <li>Plain right-click: click-through if enabled for the sign's current
+ *       visibility state, otherwise vanilla (edit sign text).</li>
+ *   <li>Shift + right-click: vanilla interact, or toggle visibility if the
+ *       swap option is enabled.</li>
+ *   <li>Keybind held + right-click: toggle visibility, or forced vanilla
+ *       interact (even over click-through) if the swap option is enabled.</li>
+ * </ul>
+ *
+ * See {@link GestureResolver} for the shared resolution logic (also used by
+ * {@link ItemFrameInteractionHandler}).
+ *
+ * <p>Signs have no vanilla "invisible" flag, so this mod adds its own
+ * {@link SignProperties#INVISIBLE} blockstate property (see
  * {@link net.fayber.invisibleitemframes.mixin.SignBlockMixin}) and flips it
  * with {@link Level#setBlockAndUpdate}, which also takes care of the
  * client-side chunk remesh a block entity data change alone would not
  * trigger.
  *
- * <p>On the client side of a modded client the handler does not run the
- * action itself: it sends an {@link InvisibleItemFramesNetworking} payload
- * and returns {@code FAIL}, which cancels vanilla's use processing (so the
- * sign edit screen is not predicted) without sending a vanilla use packet.
- * The server receiver performs the action authoritatively. See
- * {@link InvisibleItemFramesNetworking} for why the event path alone was not
- * reliable enough.
+ * <p>Fabric's {@code UseBlockCallback} fires on both sides, so the keybind
+ * check (client-only, real GLFW key state) can live directly in this
+ * handler's client branch - unlike item frames, signs need no extra mixin.
+ * On the client side, a non-PLAIN gesture sends an
+ * {@link InvisibleItemFramesNetworking} payload and returns {@code FAIL},
+ * which cancels vanilla's use processing (so the sign edit screen is not
+ * predicted) without sending a vanilla use packet. The server receiver
+ * performs the action authoritatively. Vanilla clients (no mod installed)
+ * only ever produce the PLAIN/SHIFT gestures via the normal vanilla packet;
+ * the server-side branch below still recognises those for them.
  */
 public final class SignInteractionHandler {
     private SignInteractionHandler() {}
@@ -46,9 +62,20 @@ public final class SignInteractionHandler {
 
         InvisibleItemFramesConfig config = InvisibleItemFramesConfig.get();
         ItemStack held = player.getItemInHand(hand);
-        boolean toggleGesture = held.isEmpty() && player.isShiftKeyDown();
+        boolean handEmpty = held.isEmpty();
+        boolean shiftDown = player.isShiftKeyDown();
+        // Keybind state only exists client-side; the server never sees it
+        // directly, only through the payloads the client sends below.
+        boolean keybindDown = level.isClientSide()
+                && InvisibleItemFramesClientKeybind.isDown(config);
 
-        if (toggleGesture && config.enableSignToggle) {
+        GestureResolver.Gesture gesture = GestureResolver.resolve(
+                shiftDown, keybindDown, config.swapKeybindAndSneakRoles, handEmpty);
+
+        if (gesture == GestureResolver.Gesture.TOGGLE) {
+            if (!config.enableSignToggle) {
+                return InteractionResult.PASS;
+            }
             if (level.isClientSide()) {
                 InvisibleItemFramesClient.sendToggleSign(pos);
                 return InteractionResult.FAIL;
@@ -59,7 +86,22 @@ public final class SignInteractionHandler {
             return InteractionResult.SUCCESS;
         }
 
-        if (config.clickThroughSigns) {
+        boolean invisible = state.getValue(SignProperties.INVISIBLE);
+        boolean clickThroughWouldApply = invisible ? config.clickThroughInvisibleSigns : config.clickThroughVisibleSigns;
+
+        if (gesture == GestureResolver.Gesture.INTERACT) {
+            // Only the keybind (swap on) needs to force past click-through;
+            // shift's plain "interact" role (swap off) is already what PASS
+            // does on its own.
+            if (keybindDown && clickThroughWouldApply) {
+                InvisibleItemFramesClient.sendForceInteractSign(pos);
+                return InteractionResult.FAIL;
+            }
+            return InteractionResult.PASS;
+        }
+
+        // gesture == PLAIN
+        if (clickThroughWouldApply) {
             if (level.isClientSide()) {
                 if (ItemFrameInteractionHandler.findClickThroughTarget(player, level, pos) == null) {
                     return InteractionResult.PASS;
@@ -101,6 +143,20 @@ public final class SignInteractionHandler {
         if (level.getBlockState(signPos).getBlock() instanceof SignBlock) {
             clickThrough(level, signPos, player);
         }
+    }
+
+    /**
+     * Forced-interact used by the network receiver when the keybind (swap
+     * on) overrides click-through: runs vanilla's own sign-use handling
+     * directly, bypassing this mod's click-through logic entirely.
+     */
+    public static void forceInteractIfSigned(Player player, Level level, BlockPos signPos) {
+        BlockState state = level.getBlockState(signPos);
+        if (!(state.getBlock() instanceof SignBlock)) {
+            return;
+        }
+        BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(signPos), Direction.UP, signPos, false);
+        state.useWithoutItem(level, player, hit);
     }
 
     /**

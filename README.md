@@ -1,19 +1,29 @@
 # Invisible Item Frames
 
-A Fabric mod that lets you shift right-click an item frame or a sign with an
-empty hand to toggle its visibility, and optionally makes invisible frames
-and signs click-through so interactions reach whatever is behind them.
+A Fabric mod that lets you toggle the visibility of item frames and signs,
+and optionally click through them to interact with whatever is behind them.
+The held item in a frame and a sign's text always keep rendering, only the
+frame or sign's own model is hidden.
 
 ## Usage
 
-- Shift right-click an item frame with an empty hand: hides the frame itself.
-  The held item and its rotation keep rendering, exactly like a vanilla
-  `Silent` + `Invisible` item frame placed with NBT.
-- Shift right-click a sign with an empty hand: hides the sign's post/plank
-  model. The sign's text keeps rendering.
-- The gesture (shift + empty hand) always applies and is not configurable.
-  What is configurable is whether the toggle is enabled at all, and whether
-  interactions click through to the block behind.
+Three gestures on an item frame or a sign, each independently configurable:
+
+- **Plain right-click**: if click-through is enabled for that exact case
+  (visible frame, invisible frame, visible sign, invisible sign are four
+  separate toggles), the click passes through to whatever the frame or sign
+  is mounted on. Otherwise it behaves exactly like vanilla (rotate the held
+  item in a frame, edit a sign's text).
+- **Shift + right-click**: toggles visibility, if the toggle is enabled.
+- **Toggle keybind + right-click** (default: Left Alt): also toggles
+  visibility, as an alternative to sneaking. Bound and shown in the mod's
+  own config screen, not the vanilla Controls menu.
+
+`swap_keybind_and_sneak_roles` swaps which of Shift and the keybind toggles
+visibility and which one always forces vanilla interact (bypassing
+click-through, so you can still rotate an item or edit a sign even when
+click-through is on). Plain right-click's behaviour is never affected by the
+swap.
 
 ## Commands
 
@@ -29,18 +39,26 @@ configs. Change the file and restart, set them live with
 `/invisibleitemframes config set`, or edit them from the Mods screen via
 ModMenu in singleplayer.
 
-- `enable_item_frame_toggle` (true): whether shift right-click with an empty
-  hand toggles item frame visibility at all.
+- `enable_item_frame_toggle` (true): whether Shift/keybind right-click
+  toggles item frame visibility at all.
 - `affect_glow_item_frames` (true): whether glow item frames can also be
   toggled invisible. When false, glow item frames are left alone entirely.
-- `click_through_invisible_frames` (true): interactions on an already
-  invisible frame reach the block behind it instead of the frame. Clicking
-  a visible frame keeps vanilla behaviour (rotating the item it holds);
-  there is deliberately no click-through for visible frames.
-- `enable_sign_toggle` (true): whether shift right-click with an empty hand
-  toggles sign visibility at all.
-- `click_through_signs` (false): interactions on a sign reach the block it is
-  mounted on instead of the sign.
+- `click_through_visible_frames` (false): plain right-clicks on a visible
+  frame reach the block behind it instead of the frame.
+- `click_through_invisible_frames` (true): plain right-clicks on an already
+  invisible frame reach the block behind it instead of the frame.
+- `enable_sign_toggle` (true): whether Shift/keybind right-click toggles
+  sign visibility at all.
+- `click_through_visible_signs` (false): plain right-clicks on a visible
+  sign reach the block it is mounted on instead of the sign.
+- `click_through_invisible_signs` (false): plain right-clicks on an
+  invisible sign reach the block it is mounted on instead of the sign.
+- `swap_keybind_and_sneak_roles` (false): off, Shift toggles visibility and
+  the keybind forces interact; on, the keybind toggles visibility and Shift
+  forces interact.
+- `keybind_key_code`, `keybind_alt`, `keybind_control`, `keybind_shift`: the
+  toggle keybind (default: Left Alt, no other modifiers). Set from the mod's
+  config screen; the raw JSON fields are keyboard-only (no mouse buttons).
 - `toggle_requires_permission` (false): only operators (level 2) may toggle
   frame and sign visibility.
 
@@ -64,9 +82,18 @@ ModMenu in singleplayer.
   reach and skipping the frame or sign itself, so it targets exactly the
   block the click would have reached without the frame or sign, regardless
   of how it is mounted (wall, ceiling, or standing).
-- Toggling and click-through are decided on the server. With the mod
-  installed on the client, the click is sent as a dedicated packet outside
-  the vanilla interaction chain, so other mods cannot swallow it.
+- Toggling, click-through, and the forced-interact override are decided on
+  the server. With the mod installed on the client, the click is sent as a
+  dedicated packet outside the vanilla interaction chain, so other mods
+  cannot swallow it.
+- The toggle keybind is picked from the mod's own config screen (Cloth
+  Config's key-code picker if installed, or a simple "press a key" capture
+  in the fallback screen), never the vanilla Controls menu, so it cannot
+  collide with a vanilla or another mod's binding.
+- Holding the keybind and right-clicking always reaches the server (item
+  frames use a client-side mixin to catch it, since Fabric's entity-use
+  event only fires on the server; signs use their existing block-use event,
+  which fires on both sides).
 
 ## Requirements
 

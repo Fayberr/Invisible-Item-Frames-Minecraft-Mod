@@ -33,4 +33,14 @@ public final class InvisibleItemFramesClient {
         ClientPlayNetworking.send(new InvisibleItemFramesNetworking.InteractPayload(
                 InvisibleItemFramesNetworking.InteractPayload.CLICK_THROUGH_FRAME, 0L, frameEntityId));
     }
+
+    public static void sendForceInteractSign(BlockPos signPos) {
+        ClientPlayNetworking.send(new InvisibleItemFramesNetworking.InteractPayload(
+                InvisibleItemFramesNetworking.InteractPayload.FORCE_INTERACT_SIGN, signPos.asLong(), -1));
+    }
+
+    public static void sendForceInteractFrame(int frameEntityId) {
+        ClientPlayNetworking.send(new InvisibleItemFramesNetworking.InteractPayload(
+                InvisibleItemFramesNetworking.InteractPayload.FORCE_INTERACT_FRAME, 0L, frameEntityId));
+    }
 }
