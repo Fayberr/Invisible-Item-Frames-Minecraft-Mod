@@ -18,31 +18,24 @@ import net.minecraft.world.level.block.state.BlockState;
 /**
  * Client-to-server payloads for the interaction features.
  *
- * <p>Why this exists: Fabric's {@code UseEntityCallback} only fires on the
- * server, but {@code UseBlockCallback} fires on BOTH sides, and the client
- * side runs inside {@code MultiPlayerGameMode.useItemOn} where a non-PASS
- * result cancels vanilla processing (so no sign edit screen prediction) while
- * still sending the use packet through the prediction mechanism. Relying on
- * the event alone leaves the sign toggle exposed to whatever other listeners
- * are registered before this mod, which is exactly what made the sign toggle
- * a no-op in practice. Instead, the mod's client sends one of these payloads
- * and returns {@code FAIL}, so no vanilla use packet is sent at all and the
- * server acts on the payload alone, on the server thread, outside the shared
- * event chain.
- *
- * <p>Item frame interactions have no client-side event hook at all (see
- * {@link ItemFrameInteractionHandler}), so the keybind gesture for frames is
- * intercepted earlier, by a client mixin into
- * {@code MultiPlayerGameMode.interact}, which sends one of these payloads
- * directly and cancels the vanilla method before it can send its own packet.
+ * <p>Why this exists: in fabric-api 26.x both {@code UseBlockCallback} and
+ * {@code UseEntityCallback} fire on the client as well as the server, so the
+ * handlers can detect the keybind gesture there (an arbitrary key the
+ * vanilla packets have no field for). On a non-PLAIN gesture the client
+ * sends one of these payloads and returns {@code FAIL}; fabric then cancels
+ * the vanilla use/interact processing (no edit-screen prediction, no frame
+ * rotation, no click-through) without sending the corresponding vanilla
+ * packet at all, and the server acts on the payload alone, on the server
+ * thread, outside the shared event chain. Going through the event alone
+ * would leave each action exposed to whatever other listeners are
+ * registered before this mod.
  *
  * <p>The server-side event handlers ({@link ItemFrameInteractionHandler},
  * {@link SignInteractionHandler}) remain as the fallback for vanilla clients
  * (no mod installed) and for the plain/shift gestures on a modded client:
  * there the vanilla use/interact packet arrives (it already carries the
  * sneak flag) and the handler resolves plain vs. shift itself. Only the
- * keybind gesture - an arbitrary key the vanilla packet has no field for -
- * needs an explicit payload.
+ * keybind gesture needs an explicit payload.
  *
  * <p>Because the keybind's held/not-held state cannot be re-verified on the
  * server (there is no synced vanilla state for it), the server-side handlers

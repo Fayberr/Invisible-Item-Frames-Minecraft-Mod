@@ -1,6 +1,7 @@
 package net.fayber.invisibleitemframes;
 
 import net.fayber.invisibleitemframes.client.InvisibleItemFramesClient;
+import net.fayber.invisibleitemframes.client.InvisibleItemFramesClientKeybind;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -17,23 +18,33 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Handles the plain-click and shift-click gestures for item frames:
+ * Handles the three-gesture interaction model for item frames:
  *
  * <ul>
  *   <li>Plain right-click: click-through if enabled for the frame's current
  *       visibility state, otherwise vanilla (rotate the held item).</li>
  *   <li>Shift + right-click: vanilla interact, or toggle visibility if the
  *       swap option is enabled.</li>
+ *   <li>Keybind held + right-click: toggle visibility, or forced vanilla
+ *       interact (even over click-through) if the swap option is enabled.</li>
  * </ul>
  *
- * <p>The third gesture (keybind held + right-click) is handled separately by
- * {@code net.fayber.invisibleitemframes.mixin.client.MultiPlayerGameModeMixin}:
- * Fabric's {@code UseEntityCallback} (used here) fires on the server only, so
- * there is no client-side hook in this event to detect the keybind (an
- * arbitrary key the server has no visibility into). The mixin intercepts the
- * click before the vanilla interact packet is even built, and - when the
- * keybind is held - sends its own payload and cancels vanilla processing
- * entirely, so this method never sees keybind-driven clicks at all.
+ * See {@link GestureResolver} for the shared resolution logic (also used by
+ * {@link SignInteractionHandler}).
+ *
+ * <p>Fabric's {@code UseEntityCallback} fires on both sides in fabric-api
+ * 26.x: fabric's own client {@code MinecraftMixin} invokes the event at the
+ * entity-interact step of {@code startUseItem}, before
+ * {@code MultiPlayerGameMode.interact} runs at all. So the keybind check
+ * (client-only, real GLFW key state) can live directly in this handler's
+ * client branch - item frames need no extra mixin. On the client side, a
+ * non-PLAIN gesture sends an {@link InvisibleItemFramesNetworking} payload
+ * and returns {@code FAIL}; fabric then cancels {@code startUseItem} before
+ * the vanilla interact call, so no vanilla interact packet is sent and
+ * nothing is rotated or clicked through. The server receiver performs the
+ * action authoritatively. Vanilla clients (no mod installed) only ever
+ * produce the PLAIN/SHIFT gestures via the normal vanilla packet; the
+ * server-side branch below still recognises those for them.
  *
  * <p>Frame visibility reuses vanilla's own {@link Entity#setInvisible(boolean)}
  * / {@link Entity#isInvisible()}, the same flag that makes an item frame
@@ -60,9 +71,13 @@ public final class ItemFrameInteractionHandler {
         ItemStack held = player.getItemInHand(hand);
         boolean handEmpty = held.isEmpty();
         boolean shiftDown = player.isShiftKeyDown();
-        // The keybind gesture never reaches this method - see class javadoc.
+        // Keybind state only exists client-side; the server never sees it
+        // directly, only through the payloads the client sends below.
+        boolean keybindDown = level.isClientSide()
+                && InvisibleItemFramesClientKeybind.isDown(config);
+
         GestureResolver.Gesture gesture = GestureResolver.resolve(
-                shiftDown, false, config.swapKeybindAndSneakRoles, handEmpty);
+                shiftDown, keybindDown, config.swapKeybindAndSneakRoles, handEmpty);
 
         if (gesture == GestureResolver.Gesture.TOGGLE) {
             if (!config.enableItemFrameToggle) {
@@ -78,16 +93,22 @@ public final class ItemFrameInteractionHandler {
             return InteractionResult.SUCCESS;
         }
 
+        boolean clickThroughWouldApply = frame.isInvisible()
+                ? config.clickThroughInvisibleFrames
+                : config.clickThroughVisibleFrames;
+
         if (gesture == GestureResolver.Gesture.INTERACT) {
-            // Shift's plain "interact" role (swap off) is just PASS; the
-            // keybind's forced-interact role never reaches this method.
+            // Only the keybind (swap on) needs to force past click-through;
+            // shift's plain "interact" role (swap off) is already what PASS
+            // does on its own.
+            if (keybindDown && clickThroughWouldApply) {
+                InvisibleItemFramesClient.sendForceInteractFrame(frame.getId());
+                return InteractionResult.FAIL;
+            }
             return InteractionResult.PASS;
         }
 
         // gesture == PLAIN
-        boolean clickThroughWouldApply = frame.isInvisible()
-                ? config.clickThroughInvisibleFrames
-                : config.clickThroughVisibleFrames;
         if (clickThroughWouldApply) {
             BlockPos framePos = BlockPos.containing(frame.getX(), frame.getY(), frame.getZ());
             if (level.isClientSide()) {
