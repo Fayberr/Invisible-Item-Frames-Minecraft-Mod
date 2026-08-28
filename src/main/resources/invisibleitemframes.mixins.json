@@ -1,0 +1,12 @@
+{
+	"required": true,
+	"package": "net.fayber.invisibleitemframes.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [
+		"SignBlockMixin",
+		"SignBlockDefaultStateMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

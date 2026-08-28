@@ -1,0 +1,38 @@
+{
+	"schemaVersion": 1,
+	"id": "invisibleitemframes",
+	"version": "${version}",
+	"name": "Invisible Item Frames",
+	"description": "Shift right-click an item frame with an empty hand to make it invisible. Configurable click-through for frames and signs, and the same toggle for signs.",
+	"authors": [
+		"Fayber"
+	],
+	"contact": {
+		"homepage": "https://github.com/Fayberr/Invisible-Item-Frames-Minecraft-Mod",
+		"sources": "https://github.com/Fayberr/Invisible-Item-Frames-Minecraft-Mod"
+	},
+	"license": "GPL-3.0-or-later",
+	"icon": "assets/invisibleitemframes/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"net.fayber.invisibleitemframes.InvisibleItemFramesMod"
+		],
+		"modmenu": [
+			"net.fayber.invisibleitemframes.InvisibleItemFramesModMenu"
+		]
+	},
+	"mixins": [
+		"invisibleitemframes.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": ">=26.1 <26.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"modmenu": "*",
+		"cloth-config": "*"
+	}
+}
