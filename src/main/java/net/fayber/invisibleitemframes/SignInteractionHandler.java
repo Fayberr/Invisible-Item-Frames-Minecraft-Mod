@@ -45,9 +45,14 @@ import net.minecraft.world.phys.Vec3;
  * {@link InvisibleItemFramesNetworking} payload and returns {@code FAIL},
  * which cancels vanilla's use processing (so the sign edit screen is not
  * predicted) without sending a vanilla use packet. The server receiver
- * performs the action authoritatively. Vanilla clients (no mod installed)
- * only ever produce the PLAIN/SHIFT gestures via the normal vanilla packet;
- * the server-side branch below still recognises those for them.
+ * performs the action authoritatively. For the shift-click editor this
+ * payload route is essential: vanilla suppresses block use entirely while
+ * sneaking with anything in either hand (e.g. a shield in the offhand), so
+ * a PASSed shift-click would silently do nothing. An item in the MAIN hand
+ * is respected instead: the gesture PASSes so vanilla sneak-placement and
+ * dye use keep working. Vanilla clients (no mod installed) only ever
+ * produce the PLAIN/SHIFT gestures via the normal vanilla packet; the
+ * server-side branch below still recognises those for them.
  */
 public final class SignInteractionHandler {
     private SignInteractionHandler() {}
@@ -90,10 +95,16 @@ public final class SignInteractionHandler {
         boolean clickThroughWouldApply = invisible ? config.clickThroughInvisibleSigns : config.clickThroughVisibleSigns;
 
         if (gesture == GestureResolver.Gesture.INTERACT) {
-            // Only the keybind (swap on) needs to force past click-through;
-            // shift's plain "interact" role (swap off) is already what PASS
-            // does on its own.
-            if (keybindDown && clickThroughWouldApply) {
+            // Modded clients must not rely on PASS for the editor: vanilla
+            // suppresses block use entirely while sneaking with anything in
+            // EITHER hand (a shield in the offhand is enough), so a PASSed
+            // shift-click would silently do nothing. With an empty main hand
+            // the client therefore sends the force-interact payload (the same
+            // path the keybind role uses) and the server opens the editor
+            // directly. With an item in the main hand, PASS keeps vanilla's
+            // item behavior (sneak-placing a block against the sign, dyeing
+            // its text, ...).
+            if ((level.isClientSide() && handEmpty) || (keybindDown && clickThroughWouldApply)) {
                 InvisibleItemFramesClient.sendForceInteractSign(pos);
                 return InteractionResult.FAIL;
             }
