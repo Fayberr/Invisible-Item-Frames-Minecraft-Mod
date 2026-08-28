@@ -14,12 +14,9 @@ import net.minecraft.server.permissions.Permissions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Shift right-click an item frame or sign with an empty hand to toggle its
- * visibility. See {@link ItemFrameInteractionHandler} and
- * {@link SignInteractionHandler} for the actual interaction logic, and
- * {@link InvisibleItemFramesConfig} for the config surface.
- */
+// Shift right-click an item frame or sign with an empty hand to toggle its
+// visibility. Actual interaction logic lives in ItemFrameInteractionHandler
+// and SignInteractionHandler; config surface is InvisibleItemFramesConfig.
 public class InvisibleItemFramesMod implements ModInitializer {
     public static final String MOD_ID = "invisibleitemframes";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);

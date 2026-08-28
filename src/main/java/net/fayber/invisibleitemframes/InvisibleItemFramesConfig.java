@@ -10,20 +10,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/**
- * Mod config, stored as {@code config/invisibleitemframes.json}. Values can be
- * changed in-game with {@code /invisibleitemframes config} or, in singleplayer,
- * from the ModMenu config screen.
- *
- * <p>On a modded client, right-click resolves to one of three actions based
- * on what is held down: the configurable toggle keybind, sneak (shift), or
- * neither. Which of {@code Interact} and {@code Toggle Visibility} sits on
- * sneak vs. the keybind is swappable (see the client-only config). Plain
- * click-through has its own independent enable flag per case (visible or
- * invisible, frame or sign) below. Vanilla clients (no mod installed) fall
- * back to the simpler sneak+empty-hand toggle gesture server-side; see
- * {@link ItemFrameInteractionHandler} and {@link SignInteractionHandler}.
- */
+// mod config, stored as config/invisibleitemframes.json. Editable in-game via
+// /invisibleitemframes config, or from the ModMenu screen in singleplayer.
+// see GestureResolver for how these options combine into the actual right-click behavior.
 public final class InvisibleItemFramesConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path PATH = FabricLoader.getInstance().getConfigDir().resolve("invisibleitemframes.json");
