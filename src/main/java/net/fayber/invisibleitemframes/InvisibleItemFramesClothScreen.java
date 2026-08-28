@@ -51,6 +51,12 @@ public final class InvisibleItemFramesClothScreen {
                         + "(and always wins over click-through)."));
         general.addEntry(bool(eb, "toggle_requires_permission", "Toggle Requires Permission", false,
                 "Only operators may toggle frame and sign visibility."));
+        general.addEntry(bool(eb, "require_empty_hand_for_toggle", "Require Empty Hand for Visibility Toggling", false,
+                "Off: toggling visibility works even with an item in hand. On: toggling only works with an empty hand."));
+        general.addEntry(bool(eb, "require_empty_hand_for_interaction", "Require Empty Hand for Interaction", true,
+                "On: rotating a frame's item or opening the sign editor via shift/keybind only works with an empty "
+                        + "hand (an item in hand keeps vanilla's own behavior, like dyeing a sign). Off: interaction "
+                        + "is forced even with an item in hand."));
 
         return builder.build();
     }

@@ -21,7 +21,7 @@ Hide item frames and signs without losing what's in them: the item in the frame 
 ## Features
 
 - Hide any item frame or sign. Glow item frames work too.
-- Toggle with a keybind (Left Alt by default) or Shift. Toggling needs an empty main hand. The keybind is set in the mod's config screen, not the vanilla Controls menu.
+- Toggle with a keybind (Left Alt by default) or Shift. Toggling works with anything in your hand by default (the mod's config screen can require an empty hand instead). The keybind is set in the mod's config screen, not the vanilla Controls menu.
 - Plain right-click clicks through to the block behind. You can turn that on separately for visible and invisible frames and signs.
 - Shift + right-click does the normal action, so you can still edit a sign or put an item in a frame.
 
