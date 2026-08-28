@@ -15,35 +15,25 @@ import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.level.block.SignBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
-/**
- * Client-to-server payloads for the interaction features.
- *
- * <p>Why this exists: in fabric-api 26.x both {@code UseBlockCallback} and
- * {@code UseEntityCallback} fire on the client as well as the server, so the
- * handlers can detect the keybind gesture there (an arbitrary key the
- * vanilla packets have no field for). On a non-PLAIN gesture the client
- * sends one of these payloads and returns {@code FAIL}; fabric then cancels
- * the vanilla use/interact processing (no edit-screen prediction, no frame
- * rotation, no click-through) without sending the corresponding vanilla
- * packet at all, and the server acts on the payload alone, on the server
- * thread, outside the shared event chain. Going through the event alone
- * would leave each action exposed to whatever other listeners are
- * registered before this mod.
- *
- * <p>The server-side event handlers ({@link ItemFrameInteractionHandler},
- * {@link SignInteractionHandler}) remain as the fallback for vanilla clients
- * (no mod installed) and for the plain/shift gestures on a modded client:
- * there the vanilla use/interact packet arrives (it already carries the
- * sneak flag) and the handler resolves plain vs. shift itself. Only the
- * keybind gesture needs an explicit payload.
- *
- * <p>Because the keybind's held/not-held state cannot be re-verified on the
- * server (there is no synced vanilla state for it), the server-side handlers
- * below re-check only what IS knowable server-side: permission, empty hand
- * (for toggle), and interaction range - the same trust level already applied
- * to the plain vanilla-packet path (a modified client could always misreport
- * sneak too).
- */
+// Client-to-server payloads for the interaction features.
+//
+// Why we need our own packet: in fabric-api 26.x both UseBlockCallback and
+// UseEntityCallback fire client-side too, so we can read the keybind there
+// (it's just an arbitrary key, vanilla's packets have no field for it).
+// Whenever the gesture isn't PLAIN, the client sends one of these payloads
+// and returns FAIL, which cancels the vanilla use/interact before it sends
+// its own packet - so no double rotation/click-through/prediction - and the
+// server acts on our payload directly instead of trusting client state.
+//
+// The vanilla event handlers below still handle everything else (plain
+// clicks, shift, and vanilla-only clients that don't send this packet at
+// all): only the keybind gesture actually needs this custom payload.
+//
+// The keybind's held/not-held state can't be verified server-side (no
+// synced vanilla field for it), so every handler here re-checks whatever
+// IS knowable server-side before acting: permission, empty hand, range.
+// Same trust level the vanilla-packet path already gets - a modified
+// client could lie about sneak too, this is nothing new.
 public final class InvisibleItemFramesNetworking {
     private InvisibleItemFramesNetworking() {}
 
@@ -80,7 +70,7 @@ public final class InvisibleItemFramesNetworking {
         if (!config.enableSignToggle || !SignInteractionHandler.hasTogglePermission(player, config)) {
             return;
         }
-        if (!player.getMainHandItem().isEmpty()) {
+        if (config.requireEmptyHandForToggle && !player.getMainHandItem().isEmpty()) {
             return;
         }
         BlockPos pos = BlockPos.of(payload.pos());
@@ -95,7 +85,7 @@ public final class InvisibleItemFramesNetworking {
         if (!config.enableItemFrameToggle || !SignInteractionHandler.hasTogglePermission(player, config)) {
             return;
         }
-        if (!player.getMainHandItem().isEmpty()) {
+        if (config.requireEmptyHandForToggle && !player.getMainHandItem().isEmpty()) {
             return;
         }
         if (!(player.level().getEntity(payload.entityId()) instanceof ItemFrame frame)) {
@@ -153,6 +143,13 @@ public final class InvisibleItemFramesNetworking {
     }
 
     private static void handleForceInteractSign(InteractPayload payload, ServerPlayer player) {
+        InvisibleItemFramesConfig config = InvisibleItemFramesConfig.get();
+        // Don't just trust the client's own gating - re-check server-side too,
+        // otherwise a modified client could force the editor open with an
+        // item in hand even when the config says that shouldn't happen.
+        if (config.requireEmptyHandForInteraction && !player.getMainHandItem().isEmpty()) {
+            return;
+        }
         BlockPos signPos = BlockPos.of(payload.pos());
         if (!player.isWithinBlockInteractionRange(signPos, 1.0)) {
             return;
@@ -162,6 +159,9 @@ public final class InvisibleItemFramesNetworking {
 
     private static void handleForceInteractFrame(InteractPayload payload, ServerPlayer player) {
         InvisibleItemFramesConfig config = InvisibleItemFramesConfig.get();
+        if (config.requireEmptyHandForInteraction && !player.getMainHandItem().isEmpty()) {
+            return;
+        }
         if (!(player.level().getEntity(payload.entityId()) instanceof ItemFrame frame)) {
             return;
         }

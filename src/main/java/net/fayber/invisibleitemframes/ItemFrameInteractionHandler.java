@@ -1,5 +1,6 @@
 package net.fayber.invisibleitemframes;
 
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fayber.invisibleitemframes.client.InvisibleItemFramesClient;
 import net.fayber.invisibleitemframes.client.InvisibleItemFramesClientKeybind;
 import net.minecraft.core.BlockPos;
@@ -17,42 +18,23 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
-/**
- * Handles the three-gesture interaction model for item frames:
- *
- * <ul>
- *   <li>Plain right-click: click-through if enabled for the frame's current
- *       visibility state, otherwise vanilla (rotate the held item).</li>
- *   <li>Shift + right-click: vanilla interact, or toggle visibility if the
- *       swap option is enabled.</li>
- *   <li>Keybind held + right-click: toggle visibility, or forced vanilla
- *       interact (even over click-through) if the swap option is enabled.</li>
- * </ul>
- *
- * See {@link GestureResolver} for the shared resolution logic (also used by
- * {@link SignInteractionHandler}).
- *
- * <p>Fabric's {@code UseEntityCallback} fires on both sides in fabric-api
- * 26.x: fabric's own client {@code MinecraftMixin} invokes the event at the
- * entity-interact step of {@code startUseItem}, before
- * {@code MultiPlayerGameMode.interact} runs at all. So the keybind check
- * (client-only, real GLFW key state) can live directly in this handler's
- * client branch - item frames need no extra mixin. On the client side, a
- * non-PLAIN gesture sends an {@link InvisibleItemFramesNetworking} payload
- * and returns {@code FAIL}; fabric then cancels {@code startUseItem} before
- * the vanilla interact call, so no vanilla interact packet is sent and
- * nothing is rotated or clicked through. The server receiver performs the
- * action authoritatively. Vanilla clients (no mod installed) only ever
- * produce the PLAIN/SHIFT gestures via the normal vanilla packet; the
- * server-side branch below still recognises those for them.
- *
- * <p>Frame visibility reuses vanilla's own {@link Entity#setInvisible(boolean)}
- * / {@link Entity#isInvisible()}, the same flag that makes an item frame
- * placed with {@code Silent} + {@code Invisible} NBT invisible in survival.
- * That means the state is synced and saved by vanilla with no extra code
- * here: the item and its rotation keep rendering, only the frame's own
- * model is hidden.
- */
+// Handles the three-gesture interaction model for item frames - see
+// GestureResolver for what plain/shift/keybind resolve to.
+//
+// UseEntityCallback fires on both client and server in fabric-api 26.x
+// (fabric's client MinecraftMixin calls it during startUseItem, before
+// MultiPlayerGameMode.interact even runs), so we can check the keybind
+// state right here in the client branch without needing a mixin. For any
+// non-PLAIN gesture the client sends a payload and returns FAIL, which
+// cancels startUseItem before the vanilla interact packet goes out - so
+// nothing gets rotated/clicked-through client-side, the server just acts on
+// our payload. Vanilla (unmodded) clients only ever produce PLAIN/SHIFT via
+// the normal packet, which the server branch below still handles fine.
+//
+// Frame visibility just reuses vanilla's Entity#setInvisible/isInvisible -
+// the same flag that makes a frame placed with Silent+Invisible NBT
+// invisible in survival. So visibility syncs and saves for free; only the
+// frame model is hidden, the held item and its rotation still render.
 public final class ItemFrameInteractionHandler {
     private ItemFrameInteractionHandler() {}
 
@@ -133,40 +115,56 @@ public final class ItemFrameInteractionHandler {
         frame.setInvisible(!frame.isInvisible());
     }
 
-    /**
-     * Forced-interact used by the network receiver when the keybind (swap
-     * on) overrides click-through: runs vanilla's own frame-interact
-     * handling directly, bypassing this mod's click-through logic entirely.
-     */
+    // used by the network receiver when the keybind (swap on) overrides click-through -
+    // runs vanilla's own frame interact directly, skipping our click-through logic
     public static void forceInteract(Player player, ItemFrame frame, InteractionHand hand) {
         frame.interact(player, hand, Vec3.ZERO);
     }
 
-    /**
-     * Forwards the interaction to whatever block the crosshair ray reaches
-     * beyond the frame. Runs on the server only.
-     */
+    // forwards to whatever block the crosshair reaches beyond the frame; server only
     static InteractionResult clickThrough(Player player, Level level, BlockPos framePos) {
         BlockHitResult target = findClickThroughTarget(player, level, framePos);
         if (target == null) {
             return InteractionResult.PASS;
         }
-        return level.getBlockState(target.getBlockPos())
-                .useWithoutItem(level, player, target);
+        return forwardBlockInteraction(player, level, target);
     }
 
-    /**
-     * Walks the player's crosshair ray out to their reach and returns the
-     * first block BEYOND {@code skippedPos}, or null if there is none.
-     *
-     * <p>The ray starts at the eye and skips over the frame's or sign's own
-     * position, so the result is exactly "what would this click have reached
-     * if the frame or sign were not there". This works regardless of how the
-     * frame or sign is mounted (wall, ceiling, or standing). Earlier versions
-     * ray-cast from just past the original hit point instead, which could
-     * start inside the sign's own hitbox and re-hit the sign, making
-     * click-through open the sign editor rather than the block behind it.
-     */
+    // guards against our own onUseBlock reacting a second time to a click-through
+    // forward that happens to land on another sign; single-threaded server tick,
+    // so a plain flag is enough.
+    private static boolean forwardingInteraction = false;
+
+    static boolean isForwardingInteraction() {
+        return forwardingInteraction;
+    }
+
+    // Re-fires UseBlockCallback for the block reached by click-through instead of
+    // calling useWithoutItem() on it directly, so claim/protection mods listening
+    // on that event still get a say for the block behind the frame or sign. Only
+    // falls back to vanilla's own handling if nothing on the chain claimed it.
+    static InteractionResult forwardBlockInteraction(Player player, Level level, BlockHitResult target) {
+        forwardingInteraction = true;
+        try {
+            InteractionResult result = UseBlockCallback.EVENT.invoker()
+                    .interact(player, level, InteractionHand.MAIN_HAND, target);
+            if (result != InteractionResult.PASS) {
+                return result;
+            }
+            return level.getBlockState(target.getBlockPos())
+                    .useWithoutItem(level, player, target);
+        } finally {
+            forwardingInteraction = false;
+        }
+    }
+
+    // Walks the crosshair ray out to reach and returns the first block BEYOND
+    // skippedPos (the frame/sign's own position), or null if there isn't one.
+    // Starting from the eye and skipping the frame/sign position works no matter
+    // how it's mounted (wall/ceiling/standing). We used to ray-cast from just past
+    // the original hit point instead, but that could start inside the sign's own
+    // hitbox and re-hit the sign itself, making click-through open the sign editor
+    // instead of reaching the block behind it.
     static BlockHitResult findClickThroughTarget(Player player, Level level, BlockPos skippedPos) {
         Vec3 look = player.getViewVector(1.0F);
         double reach = player.blockInteractionRange() + 1.0;
