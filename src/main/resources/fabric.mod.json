@@ -18,6 +18,9 @@
 		"main": [
 			"net.fayber.invisibleitemframes.InvisibleItemFramesMod"
 		],
+		"client": [
+			"net.fayber.invisibleitemframes.client.InvisibleItemFramesClientInit"
+		],
 		"modmenu": [
 			"net.fayber.invisibleitemframes.InvisibleItemFramesModMenu"
 		]

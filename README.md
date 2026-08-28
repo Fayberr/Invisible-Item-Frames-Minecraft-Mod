@@ -50,9 +50,11 @@ ModMenu in singleplayer.
   same one set by placing a frame with `Invisible:1b` NBT), so it is synced
   and saved by vanilla automatically.
 - Sign invisibility adds a small blockstate property so the block renders
-  nothing while toggled, the same trick vanilla uses for
-  `minecraft:end_portal`. The sign's block entity (its text) keeps rendering
-  regardless, since that is looked up by block entity type, not render shape.
+  nothing while toggled. The sign's text keeps rendering, mirroring how a
+  hidden item frame keeps rendering its held item. On 26.1 the sign model is
+  drawn by the sign's block entity renderer (the chunk mesh is empty), so
+  the model is skipped there; on 26.2 the model is a normal blockstate model
+  and is hidden via the block's render shape.
 - Because sign invisibility changes the block's state definition, **install
   this mod on every client, not just the server.** A vanilla client would
   actually render an invisible item frame correctly on its own (vanilla

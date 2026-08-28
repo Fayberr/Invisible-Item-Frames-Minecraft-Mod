@@ -6,6 +6,9 @@
 		"SignBlockMixin",
 		"SignBlockDefaultStateMixin"
 	],
+	"client": [
+		"client.AbstractSignRendererMixin"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	}
