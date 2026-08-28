@@ -10,20 +10,17 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/**
- * Mod config, stored as {@code config/invisibleitemframes.json}. Values can be
- * changed in-game with {@code /invisibleitemframes config} or, in singleplayer,
- * from the ModMenu config screen.
- *
- * <p>On a modded client, right-click resolves to one of three actions based
- * on what is held down: the configurable toggle keybind, sneak (shift), or
- * neither. Which of {@code Interact} and {@code Toggle Visibility} sits on
- * sneak vs. the keybind is swappable (see the client-only config). Plain
- * click-through has its own independent enable flag per case (visible or
- * invisible, frame or sign) below. Vanilla clients (no mod installed) fall
- * back to the simpler sneak+empty-hand toggle gesture server-side; see
- * {@link ItemFrameInteractionHandler} and {@link SignInteractionHandler}.
- */
+// Mod config, stored as config/invisibleitemframes.json. Can be changed
+// in-game with /invisibleitemframes config, or from the ModMenu screen in
+// singleplayer.
+//
+// On a modded client, right-click resolves to one of three actions based on
+// what's held down: the toggle keybind, sneak, or neither. Which of Interact
+// and Toggle Visibility sits on sneak vs. the keybind is swappable. Plain
+// click-through has its own enable flag per case (visible/invisible,
+// frame/sign) below. Vanilla clients (no mod) fall back to the simpler
+// sneak+empty-hand toggle server-side - see ItemFrameInteractionHandler and
+// SignInteractionHandler.
 public final class InvisibleItemFramesConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path PATH = FabricLoader.getInstance().getConfigDir().resolve("invisibleitemframes.json");
@@ -65,7 +62,7 @@ public final class InvisibleItemFramesConfig {
         return INSTANCE;
     }
 
-    /** Loads {@code config/invisibleitemframes.json} into the shared instance, then writes it back. */
+    // loads the json into the shared instance, then writes it back (fills in any missing keys)
     public static void load() {
         if (Files.exists(PATH)) {
             try {
@@ -124,7 +121,7 @@ public final class InvisibleItemFramesConfig {
         }
     }
 
-    /** Sets a key by name (command / ModMenu); returns false if unknown. */
+    // sets a key by name (command / ModMenu); returns false if unknown
     public static boolean set(String key, String value) {
         InvisibleItemFramesConfig c = INSTANCE;
         switch (key.toLowerCase()) {
@@ -151,7 +148,7 @@ public final class InvisibleItemFramesConfig {
         return true;
     }
 
-    /** Sets the keybind (key code + modifiers) directly; used by config screens. */
+    // sets the keybind (key code + modifiers) directly; used by config screens
     public static void setKeybind(int keyCode, boolean alt, boolean control, boolean shift) {
         InvisibleItemFramesConfig c = INSTANCE;
         c.keybindKeyCode = keyCode;
@@ -161,7 +158,7 @@ public final class InvisibleItemFramesConfig {
         save();
     }
 
-    /** Reads a boolean key; the ModMenu screen uses this so key names stay in one place. */
+    // reads a boolean key; the ModMenu screen uses this so key names stay in one place
     public static boolean getBool(String key) {
         InvisibleItemFramesConfig c = INSTANCE;
         return switch (key.toLowerCase()) {
@@ -206,7 +203,7 @@ public final class InvisibleItemFramesConfig {
                 + ", keybind_shift=" + keybindShift;
     }
 
-    /** JSON shape on disk; boxed so missing keys keep their defaults. */
+    // json shape on disk; boxed so missing keys keep their defaults instead of turning into false
     private static class Raw {
         Boolean enable_item_frame_toggle;
         Boolean affect_glow_item_frames;

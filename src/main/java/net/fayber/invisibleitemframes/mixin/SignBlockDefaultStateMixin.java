@@ -15,28 +15,23 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * Registers the {@code iif_invisible} blockstate property directly on all
- * four concrete sign block classes, and forces their real default state back
- * to visible.
- *
- * <p>This has to target the four concrete classes rather than the shared
- * {@link net.minecraft.world.level.block.SignBlock} superclass: each of them
- * overrides {@code createBlockStateDefinition} itself to add its own
- * properties (rotation/waterlogged/attachment) but none of them call
- * {@code super.createBlockStateDefinition(builder)} while doing it, so an
- * override mixed into {@code SignBlock} would never actually run. Each
- * concrete class's own override has an identical erased descriptor, so one
- * multi-target injection covers all four.
- *
- * <p>Separately, {@link net.minecraft.world.level.block.state.properties.BooleanProperty}'s
- * own "first" possible value is {@code true}, not {@code false}, so without
- * the second injection here every sign's default state would start out
- * marked invisible. Each concrete sign block also has an identical
- * {@code (WoodType, Properties)} constructor, so the same multi-target
- * approach forces the real default back to visible right after the vanilla
- * constructor finishes registering its own default state.
- */
+// Registers the iif_invisible blockstate property directly on all four
+// concrete sign block classes, and forces their real default state back to
+// visible.
+//
+// Has to target the four concrete classes rather than the shared SignBlock
+// superclass: each one overrides createBlockStateDefinition itself to add
+// its own properties (rotation/waterlogged/attachment) without ever calling
+// super.createBlockStateDefinition(builder), so an override mixed into
+// SignBlock would never run. Each concrete class's override has an identical
+// erased descriptor though, so one multi-target injection covers all four.
+//
+// Separately, BooleanProperty's "first" possible value is true, not false,
+// so without the second injection below every sign would default to
+// invisible. Each concrete sign block also shares an identical
+// (WoodType, Properties) constructor, so the same multi-target trick forces
+// the real default back to visible right after the vanilla constructor
+// finishes registering its own default state.
 @Mixin({StandingSignBlock.class, WallSignBlock.class, CeilingHangingSignBlock.class, WallHangingSignBlock.class})
 public abstract class SignBlockDefaultStateMixin extends Block {
 

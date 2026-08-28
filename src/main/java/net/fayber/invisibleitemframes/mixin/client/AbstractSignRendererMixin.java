@@ -17,22 +17,18 @@ import net.minecraft.world.level.block.state.properties.WoodType;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
-/**
- * In 26.1 the sign's visible geometry (post and board) is NOT part of the
- * chunk mesh anymore - the vanilla sign block model has no elements and the
- * whole sign, model and text, is drawn by the block entity renderer
- * ({@code AbstractSignRenderer#submitSignWithText}). Hiding the chunk mesh
- * via the block's render shape (see {@code SignBlockMixin}) is therefore a
- * no-op on this version, and Sodium does not help either: it meshes whatever
- * the blockstate model set gives it, which is nothing here.
- *
- * <p>So the invisibility is applied at the actual render source: this wraps
- * the {@code submitSign} call inside {@code submitSignWithText} and skips it
- * while the sign's {@code iif_invisible} blockstate property is set. Only
- * the sign's wooden model is skipped; {@code submitSignText} still runs, so
- * the text keeps rendering, mirroring how a hidden item frame keeps
- * rendering its held item.
- */
+// In 26.1 the sign's visible geometry (post and board) isn't part of the
+// chunk mesh anymore - the vanilla sign block model has no elements, and the
+// whole sign (model + text) is drawn by the block entity renderer
+// (AbstractSignRenderer#submitSignWithText). So hiding the chunk mesh via
+// the block's render shape (see SignBlockMixin) is a no-op on this version,
+// and Sodium doesn't help either since it just meshes whatever the
+// blockstate model gives it, which is nothing here.
+//
+// So we hook the actual render source instead: wraps the submitSign call
+// inside submitSignWithText and skips it while iif_invisible is set. Only
+// the wooden model is skipped - submitSignText still runs, so the text keeps
+// rendering, same as how a hidden item frame keeps rendering its held item.
 @Mixin(AbstractSignRenderer.class)
 public abstract class AbstractSignRendererMixin {
 

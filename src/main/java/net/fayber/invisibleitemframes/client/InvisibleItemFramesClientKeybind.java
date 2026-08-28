@@ -6,15 +6,10 @@ import net.fayber.invisibleitemframes.InvisibleItemFramesConfig;
 import net.minecraft.client.Minecraft;
 import org.lwjgl.glfw.GLFW;
 
-/**
- * Client-only, real-time check of the configurable toggle keybind (default
- * Left Alt, no extra modifiers). Only ever called from client-side branches,
- * same pattern as the rest of the {@code client} package - a dedicated
- * server never executes this class. Callers: {@code SignInteractionHandler}
- * (client branch of {@code onUseBlock}) and {@code ItemFrameInteractionHandler}
- * (client branch of {@code onUseEntity}) - both guard the call with
- * {@code level.isClientSide()}.
- */
+// client-only, real-time check of the configurable toggle keybind (default
+// Left Alt, no extra modifiers). called from SignInteractionHandler and
+// ItemFrameInteractionHandler's client branches, both guarded by
+// level.isClientSide() - a dedicated server never executes this class.
 public final class InvisibleItemFramesClientKeybind {
     private InvisibleItemFramesClientKeybind() {}
 

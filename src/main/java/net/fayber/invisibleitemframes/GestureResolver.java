@@ -1,38 +1,29 @@
 package net.fayber.invisibleitemframes;
 
-/**
- * Resolves a physical right-click gesture (sneak state, the configurable
- * toggle keybind, and whether the hand is empty) into one of three logical
- * actions, shared by {@link ItemFrameInteractionHandler} and
- * {@link SignInteractionHandler} so both stay in sync with the confirmed
- * gesture table:
- *
- * <ul>
- *   <li>Plain right-click: {@link Gesture#PLAIN} - per-case click-through if
- *       enabled, otherwise vanilla interact.</li>
- *   <li>Shift + right-click: {@link Gesture#INTERACT} (vanilla interact) by
- *       default, or {@link Gesture#TOGGLE} if the swap option is on.</li>
- *   <li>Keybind held + right-click: {@link Gesture#TOGGLE} by default, or
- *       {@link Gesture#INTERACT} (forced, bypassing click-through) if the
- *       swap option is on.</li>
- * </ul>
- *
- * <p>The keybind takes priority over sneak when both are held. By default,
- * toggle requires an empty hand ({@code require_empty_hand_for_toggle}, off
- * by default); when that requirement is on and the hand is not empty when a
- * gesture would otherwise resolve to toggle, this falls back to
- * {@link Gesture#PLAIN} so the click is not eaten (e.g. placing an item into
- * a frame while sneaking).
- */
+// Turns a physical right-click gesture (sneak, the configurable toggle
+// keybind, empty hand or not) into one of three logical actions. Shared by
+// ItemFrameInteractionHandler and SignInteractionHandler so both stay in
+// sync:
+//
+// - plain right-click -> PLAIN (per-case click-through if enabled, otherwise
+//   vanilla interact)
+// - shift + right-click -> INTERACT by default, or TOGGLE if swapped
+// - keybind + right-click -> TOGGLE by default, or INTERACT (forced, skips
+//   click-through) if swapped
+//
+// keybind wins over sneak if both are held. toggle normally works with
+// anything in hand; when require_empty_hand_for_toggle is on and the hand
+// isn't empty, we fall back to PLAIN instead so the click isn't eaten
+// (e.g. placing an item into a frame while sneaking).
 public final class GestureResolver {
     private GestureResolver() {}
 
     public enum Gesture {
-        /** Per-case click-through if enabled, otherwise vanilla interact. */
+        // per-case click-through if enabled, otherwise vanilla interact
         PLAIN,
-        /** Flip visibility. */
+        // flip visibility
         TOGGLE,
-        /** Force vanilla interact (rotate item / edit sign text), even if click-through would otherwise apply. */
+        // force vanilla interact (rotate item / edit sign text), even over click-through
         INTERACT
     }
 
