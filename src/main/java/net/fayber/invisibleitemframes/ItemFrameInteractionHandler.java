@@ -17,11 +17,23 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Handles shift right-click-with-empty-hand toggling of item frame
- * visibility, and (when configured) forwards interactions on an INVISIBLE
- * frame to whatever block is behind the frame instead of the frame itself.
- * Visible frames always keep vanilla behaviour (clicking them rotates the
- * item they hold), so there is deliberately no click-through option for them.
+ * Handles the plain-click and shift-click gestures for item frames:
+ *
+ * <ul>
+ *   <li>Plain right-click: click-through if enabled for the frame's current
+ *       visibility state, otherwise vanilla (rotate the held item).</li>
+ *   <li>Shift + right-click: vanilla interact, or toggle visibility if the
+ *       swap option is enabled.</li>
+ * </ul>
+ *
+ * <p>The third gesture (keybind held + right-click) is handled separately by
+ * {@code net.fayber.invisibleitemframes.mixin.client.MultiPlayerGameModeMixin}:
+ * Fabric's {@code UseEntityCallback} (used here) fires on the server only, so
+ * there is no client-side hook in this event to detect the keybind (an
+ * arbitrary key the server has no visibility into). The mixin intercepts the
+ * click before the vanilla interact packet is even built, and - when the
+ * keybind is held - sends its own payload and cancels vanilla processing
+ * entirely, so this method never sees keybind-driven clicks at all.
  *
  * <p>Frame visibility reuses vanilla's own {@link Entity#setInvisible(boolean)}
  * / {@link Entity#isInvisible()}, the same flag that makes an item frame
@@ -29,11 +41,6 @@ import net.minecraft.world.phys.Vec3;
  * That means the state is synced and saved by vanilla with no extra code
  * here: the item and its rotation keep rendering, only the frame's own
  * model is hidden.
- *
- * <p>Fabric's {@code UseEntityCallback} fires on the server only, so the
- * toggle and click-through below run server-side out of the box; the client
- * branch exists for symmetry and is dormant. See
- * {@link InvisibleItemFramesNetworking} for how the client would ask.
  */
 public final class ItemFrameInteractionHandler {
     private ItemFrameInteractionHandler() {}
@@ -51,9 +58,16 @@ public final class ItemFrameInteractionHandler {
         }
 
         ItemStack held = player.getItemInHand(hand);
-        boolean toggleGesture = held.isEmpty() && player.isShiftKeyDown();
+        boolean handEmpty = held.isEmpty();
+        boolean shiftDown = player.isShiftKeyDown();
+        // The keybind gesture never reaches this method - see class javadoc.
+        GestureResolver.Gesture gesture = GestureResolver.resolve(
+                shiftDown, false, config.swapKeybindAndSneakRoles, handEmpty);
 
-        if (toggleGesture && config.enableItemFrameToggle) {
+        if (gesture == GestureResolver.Gesture.TOGGLE) {
+            if (!config.enableItemFrameToggle) {
+                return InteractionResult.PASS;
+            }
             if (level.isClientSide()) {
                 InvisibleItemFramesClient.sendToggleFrame(frame.getId());
                 return InteractionResult.FAIL;
@@ -64,8 +78,17 @@ public final class ItemFrameInteractionHandler {
             return InteractionResult.SUCCESS;
         }
 
-        boolean clickThrough = frame.isInvisible() && config.clickThroughInvisibleFrames;
-        if (clickThrough) {
+        if (gesture == GestureResolver.Gesture.INTERACT) {
+            // Shift's plain "interact" role (swap off) is just PASS; the
+            // keybind's forced-interact role never reaches this method.
+            return InteractionResult.PASS;
+        }
+
+        // gesture == PLAIN
+        boolean clickThroughWouldApply = frame.isInvisible()
+                ? config.clickThroughInvisibleFrames
+                : config.clickThroughVisibleFrames;
+        if (clickThroughWouldApply) {
             BlockPos framePos = BlockPos.containing(frame.getX(), frame.getY(), frame.getZ());
             if (level.isClientSide()) {
                 if (findClickThroughTarget(player, level, framePos) == null) {
@@ -83,6 +106,15 @@ public final class ItemFrameInteractionHandler {
     /** Flips the frame's invisibility flag; caller has validated everything. */
     static void toggleFrame(ItemFrame frame) {
         frame.setInvisible(!frame.isInvisible());
+    }
+
+    /**
+     * Forced-interact used by the network receiver when the keybind (swap
+     * on) overrides click-through: runs vanilla's own frame-interact
+     * handling directly, bypassing this mod's click-through logic entirely.
+     */
+    public static void forceInteract(Player player, ItemFrame frame, InteractionHand hand) {
+        frame.interact(player, hand, Vec3.ZERO);
     }
 
     /**

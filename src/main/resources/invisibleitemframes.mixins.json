@@ -6,6 +6,9 @@
 		"SignBlockMixin",
 		"SignBlockDefaultStateMixin"
 	],
+	"client": [
+		"client.MultiPlayerGameModeMixin"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	}
