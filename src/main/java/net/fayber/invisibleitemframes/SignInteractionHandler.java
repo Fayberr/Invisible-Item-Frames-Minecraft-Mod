@@ -75,7 +75,8 @@ public final class SignInteractionHandler {
                 && InvisibleItemFramesClientKeybind.isDown(config);
 
         GestureResolver.Gesture gesture = GestureResolver.resolve(
-                shiftDown, keybindDown, config.swapKeybindAndSneakRoles, handEmpty);
+                shiftDown, keybindDown, config.swapKeybindAndSneakRoles, handEmpty,
+                config.requireEmptyHandForToggle);
 
         if (gesture == GestureResolver.Gesture.TOGGLE) {
             if (!config.enableSignToggle) {
@@ -103,8 +104,11 @@ public final class SignInteractionHandler {
             // path the keybind role uses) and the server opens the editor
             // directly. With an item in the main hand, PASS keeps vanilla's
             // item behavior (sneak-placing a block against the sign, dyeing
-            // its text, ...).
-            if ((level.isClientSide() && handEmpty) || (keybindDown && clickThroughWouldApply)) {
+            // its text, ...) - unless require_empty_hand_for_interaction is
+            // turned off, in which case the editor is forced open regardless
+            // of what's in hand.
+            boolean interactHandOk = !config.requireEmptyHandForInteraction || handEmpty;
+            if ((level.isClientSide() && interactHandOk) || (keybindDown && clickThroughWouldApply && interactHandOk)) {
                 InvisibleItemFramesClient.sendForceInteractSign(pos);
                 return InteractionResult.FAIL;
             }

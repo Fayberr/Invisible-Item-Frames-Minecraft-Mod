@@ -45,6 +45,11 @@ public final class InvisibleItemFramesConfig {
     // Multiplayer safety.
     public boolean toggleRequiresPermission = false;
 
+    // Empty-hand gating for the two active gestures. Plain right-click
+    // (click-through / vanilla fallback) is never gated by hand contents.
+    public boolean requireEmptyHandForToggle = false;
+    public boolean requireEmptyHandForInteraction = true;
+
     // Toggle keybind (client-only concept, but kept in the shared config so
     // the ModMenu/Cloth Config screens use the same read/write pattern as
     // everything else). Default: Left Alt, no extra modifiers. Keyboard only
@@ -85,6 +90,8 @@ public final class InvisibleItemFramesConfig {
         if (raw.click_through_visible_signs != null) c.clickThroughVisibleSigns = raw.click_through_visible_signs;
         if (raw.click_through_invisible_signs != null) c.clickThroughInvisibleSigns = raw.click_through_invisible_signs;
         if (raw.toggle_requires_permission != null) c.toggleRequiresPermission = raw.toggle_requires_permission;
+        if (raw.require_empty_hand_for_toggle != null) c.requireEmptyHandForToggle = raw.require_empty_hand_for_toggle;
+        if (raw.require_empty_hand_for_interaction != null) c.requireEmptyHandForInteraction = raw.require_empty_hand_for_interaction;
         if (raw.swap_keybind_and_sneak_roles != null) c.swapKeybindAndSneakRoles = raw.swap_keybind_and_sneak_roles;
         if (raw.keybind_key_code != null) c.keybindKeyCode = raw.keybind_key_code;
         if (raw.keybind_alt != null) c.keybindAlt = raw.keybind_alt;
@@ -102,6 +109,8 @@ public final class InvisibleItemFramesConfig {
         raw.click_through_visible_signs = INSTANCE.clickThroughVisibleSigns;
         raw.click_through_invisible_signs = INSTANCE.clickThroughInvisibleSigns;
         raw.toggle_requires_permission = INSTANCE.toggleRequiresPermission;
+        raw.require_empty_hand_for_toggle = INSTANCE.requireEmptyHandForToggle;
+        raw.require_empty_hand_for_interaction = INSTANCE.requireEmptyHandForInteraction;
         raw.swap_keybind_and_sneak_roles = INSTANCE.swapKeybindAndSneakRoles;
         raw.keybind_key_code = INSTANCE.keybindKeyCode;
         raw.keybind_alt = INSTANCE.keybindAlt;
@@ -127,6 +136,8 @@ public final class InvisibleItemFramesConfig {
             case "click_through_visible_signs" -> c.clickThroughVisibleSigns = parseBool(value);
             case "click_through_invisible_signs" -> c.clickThroughInvisibleSigns = parseBool(value);
             case "toggle_requires_permission" -> c.toggleRequiresPermission = parseBool(value);
+            case "require_empty_hand_for_toggle" -> c.requireEmptyHandForToggle = parseBool(value);
+            case "require_empty_hand_for_interaction" -> c.requireEmptyHandForInteraction = parseBool(value);
             case "swap_keybind_and_sneak_roles" -> c.swapKeybindAndSneakRoles = parseBool(value);
             case "keybind_alt" -> c.keybindAlt = parseBool(value);
             case "keybind_control" -> c.keybindControl = parseBool(value);
@@ -162,6 +173,8 @@ public final class InvisibleItemFramesConfig {
             case "click_through_visible_signs" -> c.clickThroughVisibleSigns;
             case "click_through_invisible_signs" -> c.clickThroughInvisibleSigns;
             case "toggle_requires_permission" -> c.toggleRequiresPermission;
+            case "require_empty_hand_for_toggle" -> c.requireEmptyHandForToggle;
+            case "require_empty_hand_for_interaction" -> c.requireEmptyHandForInteraction;
             case "swap_keybind_and_sneak_roles" -> c.swapKeybindAndSneakRoles;
             case "keybind_alt" -> c.keybindAlt;
             case "keybind_control" -> c.keybindControl;
@@ -184,6 +197,8 @@ public final class InvisibleItemFramesConfig {
                 + ", click_through_visible_signs=" + clickThroughVisibleSigns
                 + ", click_through_invisible_signs=" + clickThroughInvisibleSigns
                 + ", toggle_requires_permission=" + toggleRequiresPermission
+                + ", require_empty_hand_for_toggle=" + requireEmptyHandForToggle
+                + ", require_empty_hand_for_interaction=" + requireEmptyHandForInteraction
                 + ", swap_keybind_and_sneak_roles=" + swapKeybindAndSneakRoles
                 + ", keybind_key_code=" + keybindKeyCode
                 + ", keybind_alt=" + keybindAlt
@@ -201,6 +216,8 @@ public final class InvisibleItemFramesConfig {
         Boolean click_through_visible_signs;
         Boolean click_through_invisible_signs;
         Boolean toggle_requires_permission;
+        Boolean require_empty_hand_for_toggle;
+        Boolean require_empty_hand_for_interaction;
         Boolean swap_keybind_and_sneak_roles;
         Integer keybind_key_code;
         Boolean keybind_alt;

@@ -38,11 +38,13 @@ public class InvisibleItemFramesConfigScreen extends Screen {
         this.addRenderableWidget(booleanButton("click_through_invisible_signs", "Click Through Invisible Signs", centerX, startY + spacing * 6));
         this.addRenderableWidget(booleanButton("swap_keybind_and_sneak_roles", "Swap Keybind / Sneak Roles", centerX, startY + spacing * 7));
         this.addRenderableWidget(booleanButton("toggle_requires_permission", "Toggle Requires Permission", centerX, startY + spacing * 8));
+        this.addRenderableWidget(booleanButton("require_empty_hand_for_toggle", "Require Empty Hand for Toggling", centerX, startY + spacing * 9));
+        this.addRenderableWidget(booleanButton("require_empty_hand_for_interaction", "Require Empty Hand for Interaction", centerX, startY + spacing * 10));
 
         this.keybindButton = Button.builder(keybindText(), button -> {
             listeningForKeybind = true;
             keybindButton.setMessage(Component.literal("Toggle Keybind: press a key..."));
-        }).bounds(centerX - 100, startY + spacing * 9, 200, 20).build();
+        }).bounds(centerX - 100, startY + spacing * 11, 200, 20).build();
         this.addRenderableWidget(keybindButton);
 
         this.addRenderableWidget(Button.builder(Component.translatable("gui.back"), button ->

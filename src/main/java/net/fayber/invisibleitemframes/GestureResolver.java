@@ -17,10 +17,12 @@ package net.fayber.invisibleitemframes;
  *       swap option is on.</li>
  * </ul>
  *
- * <p>The keybind takes priority over sneak when both are held. Toggle always
- * requires an empty hand; if the hand is not empty when a gesture would
- * otherwise resolve to toggle, this falls back to {@link Gesture#PLAIN} so
- * the click is not eaten (e.g. placing an item into a frame while sneaking).
+ * <p>The keybind takes priority over sneak when both are held. By default,
+ * toggle requires an empty hand ({@code require_empty_hand_for_toggle}, off
+ * by default); when that requirement is on and the hand is not empty when a
+ * gesture would otherwise resolve to toggle, this falls back to
+ * {@link Gesture#PLAIN} so the click is not eaten (e.g. placing an item into
+ * a frame while sneaking).
  */
 public final class GestureResolver {
     private GestureResolver() {}
@@ -34,16 +36,18 @@ public final class GestureResolver {
         INTERACT
     }
 
-    public static Gesture resolve(boolean shiftDown, boolean keybindDown, boolean swap, boolean handEmpty) {
+    public static Gesture resolve(boolean shiftDown, boolean keybindDown, boolean swap, boolean handEmpty,
+                                   boolean requireEmptyHandForToggle) {
+        boolean toggleHandOk = !requireEmptyHandForToggle || handEmpty;
         if (keybindDown) {
             if (swap) {
                 return Gesture.INTERACT;
             }
-            return handEmpty ? Gesture.TOGGLE : Gesture.PLAIN;
+            return toggleHandOk ? Gesture.TOGGLE : Gesture.PLAIN;
         }
         if (shiftDown) {
             if (swap) {
-                return handEmpty ? Gesture.TOGGLE : Gesture.PLAIN;
+                return toggleHandOk ? Gesture.TOGGLE : Gesture.PLAIN;
             }
             return Gesture.INTERACT;
         }

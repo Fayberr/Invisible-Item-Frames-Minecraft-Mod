@@ -77,7 +77,8 @@ public final class ItemFrameInteractionHandler {
                 && InvisibleItemFramesClientKeybind.isDown(config);
 
         GestureResolver.Gesture gesture = GestureResolver.resolve(
-                shiftDown, keybindDown, config.swapKeybindAndSneakRoles, handEmpty);
+                shiftDown, keybindDown, config.swapKeybindAndSneakRoles, handEmpty,
+                config.requireEmptyHandForToggle);
 
         if (gesture == GestureResolver.Gesture.TOGGLE) {
             if (!config.enableItemFrameToggle) {
@@ -100,8 +101,11 @@ public final class ItemFrameInteractionHandler {
         if (gesture == GestureResolver.Gesture.INTERACT) {
             // Only the keybind (swap on) needs to force past click-through;
             // shift's plain "interact" role (swap off) is already what PASS
-            // does on its own.
-            if (keybindDown && clickThroughWouldApply) {
+            // does on its own. require_empty_hand_for_interaction (default
+            // on) gates this override the same way it gates the sign editor
+            // open below, so the two settings behave consistently.
+            boolean interactHandOk = !config.requireEmptyHandForInteraction || handEmpty;
+            if (keybindDown && clickThroughWouldApply && interactHandOk) {
                 InvisibleItemFramesClient.sendForceInteractFrame(frame.getId());
                 return InteractionResult.FAIL;
             }

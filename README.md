@@ -19,6 +19,13 @@ Three gestures on an item frame or a sign, each independently configurable:
   visibility, as an alternative to sneaking. Bound and shown in the mod's
   own config screen, not the vanilla Controls menu.
 
+By default, toggling works with anything in hand, while interacting (rotating
+a frame's item, or opening the sign editor) only works with an empty hand -
+otherwise vanilla's own item behavior (dyeing a sign, sneak-placing a block,
+...) takes over instead. Both are configurable independently, see
+`require_empty_hand_for_toggle` and `require_empty_hand_for_interaction`
+below.
+
 `swap_keybind_and_sneak_roles` swaps which of Shift and the keybind toggles
 visibility and which one always forces vanilla interact (bypassing
 click-through, so you can still rotate an item or edit a sign even when
@@ -61,6 +68,14 @@ ModMenu in singleplayer.
   config screen; the raw JSON fields are keyboard-only (no mouse buttons).
 - `toggle_requires_permission` (false): only operators (level 2) may toggle
   frame and sign visibility.
+- `require_empty_hand_for_toggle` (false): when true, toggling visibility
+  only works with an empty hand; with an item in hand the click falls back
+  to plain right-click behavior instead.
+- `require_empty_hand_for_interaction` (true): when true, rotating a frame's
+  item or opening the sign editor via shift/keybind only works with an empty
+  hand; with an item in hand, vanilla's own item behavior (dyeing a sign,
+  sneak-placing a block, ...) takes over instead. When false, interaction is
+  forced open even with an item in hand.
 
 ## Details
 
