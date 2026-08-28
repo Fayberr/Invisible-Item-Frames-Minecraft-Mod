@@ -11,7 +11,9 @@ import org.lwjgl.glfw.GLFW;
  * Left Alt, no extra modifiers). Only ever called from client-side branches,
  * same pattern as the rest of the {@code client} package - a dedicated
  * server never executes this class. Callers: {@code SignInteractionHandler}
- * (client branch of {@code onUseBlock}) and the frame client mixin.
+ * (client branch of {@code onUseBlock}) and {@code ItemFrameInteractionHandler}
+ * (client branch of {@code onUseEntity}) - both guard the call with
+ * {@code level.isClientSide()}.
  */
 public final class InvisibleItemFramesClientKeybind {
     private InvisibleItemFramesClientKeybind() {}
