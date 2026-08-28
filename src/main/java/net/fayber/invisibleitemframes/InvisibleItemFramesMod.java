@@ -27,6 +27,7 @@ public class InvisibleItemFramesMod implements ModInitializer {
     @Override
     public void onInitialize() {
         InvisibleItemFramesConfig.load();
+        InvisibleItemFramesNetworking.register();
 
         UseEntityCallback.EVENT.register(ItemFrameInteractionHandler::onUseEntity);
         UseBlockCallback.EVENT.register(SignInteractionHandler::onUseBlock);

@@ -30,7 +30,6 @@ public final class InvisibleItemFramesConfig {
     // Item frames.
     public boolean enableItemFrameToggle = true;
     public boolean affectGlowItemFrames = true;
-    public boolean clickThroughVisibleFrames = false;
     public boolean clickThroughInvisibleFrames = true;
 
     // Signs.
@@ -63,7 +62,6 @@ public final class InvisibleItemFramesConfig {
         InvisibleItemFramesConfig c = INSTANCE;
         if (raw.enable_item_frame_toggle != null) c.enableItemFrameToggle = raw.enable_item_frame_toggle;
         if (raw.affect_glow_item_frames != null) c.affectGlowItemFrames = raw.affect_glow_item_frames;
-        if (raw.click_through_visible_frames != null) c.clickThroughVisibleFrames = raw.click_through_visible_frames;
         if (raw.click_through_invisible_frames != null) c.clickThroughInvisibleFrames = raw.click_through_invisible_frames;
         if (raw.enable_sign_toggle != null) c.enableSignToggle = raw.enable_sign_toggle;
         if (raw.click_through_signs != null) c.clickThroughSigns = raw.click_through_signs;
@@ -74,7 +72,6 @@ public final class InvisibleItemFramesConfig {
         Raw raw = new Raw();
         raw.enable_item_frame_toggle = INSTANCE.enableItemFrameToggle;
         raw.affect_glow_item_frames = INSTANCE.affectGlowItemFrames;
-        raw.click_through_visible_frames = INSTANCE.clickThroughVisibleFrames;
         raw.click_through_invisible_frames = INSTANCE.clickThroughInvisibleFrames;
         raw.enable_sign_toggle = INSTANCE.enableSignToggle;
         raw.click_through_signs = INSTANCE.clickThroughSigns;
@@ -93,7 +90,6 @@ public final class InvisibleItemFramesConfig {
         switch (key.toLowerCase()) {
             case "enable_item_frame_toggle" -> c.enableItemFrameToggle = parseBool(value);
             case "affect_glow_item_frames" -> c.affectGlowItemFrames = parseBool(value);
-            case "click_through_visible_frames" -> c.clickThroughVisibleFrames = parseBool(value);
             case "click_through_invisible_frames" -> c.clickThroughInvisibleFrames = parseBool(value);
             case "enable_sign_toggle" -> c.enableSignToggle = parseBool(value);
             case "click_through_signs" -> c.clickThroughSigns = parseBool(value);
@@ -112,7 +108,6 @@ public final class InvisibleItemFramesConfig {
         return switch (key.toLowerCase()) {
             case "enable_item_frame_toggle" -> c.enableItemFrameToggle;
             case "affect_glow_item_frames" -> c.affectGlowItemFrames;
-            case "click_through_visible_frames" -> c.clickThroughVisibleFrames;
             case "click_through_invisible_frames" -> c.clickThroughInvisibleFrames;
             case "enable_sign_toggle" -> c.enableSignToggle;
             case "click_through_signs" -> c.clickThroughSigns;
@@ -129,7 +124,6 @@ public final class InvisibleItemFramesConfig {
     public String toString() {
         return "enable_item_frame_toggle=" + enableItemFrameToggle
                 + ", affect_glow_item_frames=" + affectGlowItemFrames
-                + ", click_through_visible_frames=" + clickThroughVisibleFrames
                 + ", click_through_invisible_frames=" + clickThroughInvisibleFrames
                 + ", enable_sign_toggle=" + enableSignToggle
                 + ", click_through_signs=" + clickThroughSigns
@@ -140,7 +134,6 @@ public final class InvisibleItemFramesConfig {
     private static class Raw {
         Boolean enable_item_frame_toggle;
         Boolean affect_glow_item_frames;
-        Boolean click_through_visible_frames;
         Boolean click_through_invisible_frames;
         Boolean enable_sign_toggle;
         Boolean click_through_signs;
