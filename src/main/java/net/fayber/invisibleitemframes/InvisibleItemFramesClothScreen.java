@@ -27,8 +27,6 @@ public final class InvisibleItemFramesClothScreen {
                 "Shift right-click an item frame with an empty hand to hide or show it."));
         frames.addEntry(bool(eb, "affect_glow_item_frames", "Affect Glow Item Frames", true,
                 "Whether glow item frames can also be toggled invisible."));
-        frames.addEntry(bool(eb, "click_through_visible_frames", "Click Through Visible Frames", false,
-                "Interactions on a visible frame reach the block behind it instead."));
         frames.addEntry(bool(eb, "click_through_invisible_frames", "Click Through Invisible Frames", true,
                 "Interactions on an invisible frame reach the block behind it instead."));
 

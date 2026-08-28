@@ -27,11 +27,10 @@ public class InvisibleItemFramesConfigScreen extends Screen {
 
         this.addRenderableWidget(booleanButton("enable_item_frame_toggle", "Enable Frame Toggle", centerX, startY));
         this.addRenderableWidget(booleanButton("affect_glow_item_frames", "Affect Glow Item Frames", centerX, startY + spacing));
-        this.addRenderableWidget(booleanButton("click_through_visible_frames", "Click Through Visible Frames", centerX, startY + spacing * 2));
-        this.addRenderableWidget(booleanButton("click_through_invisible_frames", "Click Through Invisible Frames", centerX, startY + spacing * 3));
-        this.addRenderableWidget(booleanButton("enable_sign_toggle", "Enable Sign Toggle", centerX, startY + spacing * 4));
-        this.addRenderableWidget(booleanButton("click_through_signs", "Click Through Signs", centerX, startY + spacing * 5));
-        this.addRenderableWidget(booleanButton("toggle_requires_permission", "Toggle Requires Permission", centerX, startY + spacing * 6));
+        this.addRenderableWidget(booleanButton("click_through_invisible_frames", "Click Through Invisible Frames", centerX, startY + spacing * 2));
+        this.addRenderableWidget(booleanButton("enable_sign_toggle", "Enable Sign Toggle", centerX, startY + spacing * 3));
+        this.addRenderableWidget(booleanButton("click_through_signs", "Click Through Signs", centerX, startY + spacing * 4));
+        this.addRenderableWidget(booleanButton("toggle_requires_permission", "Toggle Requires Permission", centerX, startY + spacing * 5));
 
         this.addRenderableWidget(Button.builder(Component.translatable("gui.back"), button ->
                 this.minecraft.setScreenAndShow(this.parent))
