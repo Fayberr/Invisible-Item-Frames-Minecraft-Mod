@@ -15,35 +15,37 @@ import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.level.block.SignBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
-/**
- * Client-to-server payloads for the interaction features.
- *
- * <p>Why this exists: in fabric-api 26.x both {@code UseBlockCallback} and
- * {@code UseEntityCallback} fire on the client as well as the server, so the
- * handlers can detect the keybind gesture there (an arbitrary key the
- * vanilla packets have no field for). On a non-PLAIN gesture the client
- * sends one of these payloads and returns {@code FAIL}; fabric then cancels
- * the vanilla use/interact processing (no edit-screen prediction, no frame
- * rotation, no click-through) without sending the corresponding vanilla
- * packet at all, and the server acts on the payload alone, on the server
- * thread, outside the shared event chain. Going through the event alone
- * would leave each action exposed to whatever other listeners are
- * registered before this mod.
- *
- * <p>The server-side event handlers ({@link ItemFrameInteractionHandler},
- * {@link SignInteractionHandler}) remain as the fallback for vanilla clients
- * (no mod installed) and for the plain/shift gestures on a modded client:
- * there the vanilla use/interact packet arrives (it already carries the
- * sneak flag) and the handler resolves plain vs. shift itself. Only the
- * keybind gesture needs an explicit payload.
- *
- * <p>Because the keybind's held/not-held state cannot be re-verified on the
- * server (there is no synced vanilla state for it), the server-side handlers
- * below re-check only what IS knowable server-side: permission, empty hand
- * (for toggle), and interaction range - the same trust level already applied
- * to the plain vanilla-packet path (a modified client could always misreport
- * sneak too).
- */
+// Client-to-server payloads for the interaction features.
+//
+// Why this exists: both UseBlockCallback and UseEntityCallback fire on the
+// client as well as the server, so the handlers can detect the keybind
+// gesture there (an arbitrary key the vanilla packets have no field for). On
+// a non-PLAIN gesture the client sends one of these payloads and returns
+// FAIL; fabric then cancels the vanilla use/interact processing (no
+// edit-screen prediction, no frame rotation, no click-through) without
+// sending the vanilla packet at all, and the server acts on the payload
+// alone instead.
+//
+// Because that runs outside the normal UseBlockCallback/UseEntityCallback
+// dispatch, it would otherwise skip whatever other mods (land claim /
+// protection mods) hook into those same events to veto interactions. The
+// handlers below call back into SignInteractionHandler.otherModsAllow /
+// ItemFrameInteractionHandler.otherModsAllow before mutating anything, which
+// replays the event for everyone EXCEPT this mod's own listener and checks
+// the result - see those methods for how the re-entrancy is avoided.
+//
+// The server-side event handlers (ItemFrameInteractionHandler,
+// SignInteractionHandler) remain the fallback for vanilla clients (no mod
+// installed) and for the plain/shift gestures on a modded client, where the
+// real vanilla use/interact packet arrives and already carries the sneak
+// flag. Only the keybind gesture needs an explicit payload.
+//
+// The keybind's held/not-held state can't be re-verified on the server (no
+// synced vanilla state for it), so the handlers below re-check everything
+// that IS knowable server-side: the target still exists and is the right
+// type, config permission, empty hand (for toggle), interaction range, and
+// now the protection check above - the same trust level already applied to
+// the plain vanilla-packet path (a modified client could misreport sneak too).
 public final class InvisibleItemFramesNetworking {
     private InvisibleItemFramesNetworking() {}
 
@@ -105,6 +107,9 @@ public final class InvisibleItemFramesNetworking {
             return;
         }
         if (!player.isWithinEntityInteractionRange(frame, 1.0)) {
+            return;
+        }
+        if (!ItemFrameInteractionHandler.otherModsAllow(player, player.level(), frame)) {
             return;
         }
         ItemFrameInteractionHandler.toggleFrame(frame);
@@ -171,10 +176,13 @@ public final class InvisibleItemFramesNetworking {
         if (!player.isWithinEntityInteractionRange(frame, 1.0)) {
             return;
         }
+        if (!ItemFrameInteractionHandler.otherModsAllow(player, player.level(), frame)) {
+            return;
+        }
         ItemFrameInteractionHandler.forceInteract(player, frame, InteractionHand.MAIN_HAND);
     }
 
-    /** Payload sent by the mod's client to request one interaction action. */
+    // payload sent by the mod's client to request one interaction action
     public record InteractPayload(int kind, long pos, int entityId) implements CustomPacketPayload {
         public static final int TOGGLE_SIGN = 0;
         public static final int TOGGLE_FRAME = 1;

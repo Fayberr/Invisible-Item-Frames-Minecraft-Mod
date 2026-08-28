@@ -1,5 +1,6 @@
 package net.fayber.invisibleitemframes;
 
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fayber.invisibleitemframes.client.InvisibleItemFramesClient;
 import net.fayber.invisibleitemframes.client.InvisibleItemFramesClientKeybind;
 import net.fayber.invisibleitemframes.sign.SignProperties;
@@ -16,49 +17,38 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
-/**
- * Handles the three-gesture interaction model for signs:
- *
- * <ul>
- *   <li>Plain right-click: click-through if enabled for the sign's current
- *       visibility state, otherwise vanilla (edit sign text).</li>
- *   <li>Shift + right-click: vanilla interact, or toggle visibility if the
- *       swap option is enabled.</li>
- *   <li>Keybind held + right-click: toggle visibility, or forced vanilla
- *       interact (even over click-through) if the swap option is enabled.</li>
- * </ul>
- *
- * See {@link GestureResolver} for the shared resolution logic (also used by
- * {@link ItemFrameInteractionHandler}).
- *
- * <p>Signs have no vanilla "invisible" flag, so this mod adds its own
- * {@link SignProperties#INVISIBLE} blockstate property (see
- * {@link net.fayber.invisibleitemframes.mixin.SignBlockMixin}) and flips it
- * with {@link Level#setBlockAndUpdate}, which also takes care of the
- * client-side chunk remesh a block entity data change alone would not
- * trigger.
- *
- * <p>Fabric's {@code UseBlockCallback} fires on both sides, so the keybind
- * check (client-only, real GLFW key state) can live directly in this
- * handler's client branch - unlike item frames, signs need no extra mixin.
- * On the client side, a non-PLAIN gesture sends an
- * {@link InvisibleItemFramesNetworking} payload and returns {@code FAIL},
- * which cancels vanilla's use processing (so the sign edit screen is not
- * predicted) without sending a vanilla use packet. The server receiver
- * performs the action authoritatively. For the shift-click editor this
- * payload route is essential: vanilla suppresses block use entirely while
- * sneaking with anything in either hand (e.g. a shield in the offhand), so
- * a PASSed shift-click would silently do nothing. An item in the MAIN hand
- * is respected instead: the gesture PASSes so vanilla sneak-placement and
- * dye use keep working. Vanilla clients (no mod installed) only ever
- * produce the PLAIN/SHIFT gestures via the normal vanilla packet; the
- * server-side branch below still recognises those for them.
- */
+// Three gestures on a sign: plain right-click (click-through if enabled,
+// otherwise edit text), shift + right-click (edit text, or toggle if swapped),
+// keybind + right-click (toggle, or forced edit if swapped). See
+// GestureResolver for the shared logic (item frames use the same table).
+//
+// Signs don't have a vanilla "invisible" flag so we add our own blockstate
+// property (SignProperties.INVISIBLE, see the SignBlockMixin) and flip it
+// with setBlockAndUpdate, which also triggers the client-side chunk remesh
+// that a block entity data change alone wouldn't.
+//
+// UseBlockCallback fires on both sides, so the keybind check (real GLFW key
+// state, client only) lives right in the client branch below - no extra mixin
+// needed for signs. On a non-PLAIN gesture the client sends a payload and
+// returns FAIL instead of the vanilla use packet, and the server acts on the
+// payload alone. This is also why the shift-click sign editor needs the
+// payload route at all: vanilla suppresses block use entirely while sneaking
+// with anything in either hand (even a shield in the offhand), so a plain
+// PASS would silently do nothing for that case.
 public final class SignInteractionHandler {
     private SignInteractionHandler() {}
 
+    // set while we're replaying UseBlockCallback below purely to ask other
+    // mods (land claim / protection mods hooked into the same event) whether
+    // they'd allow the click; without this our own gesture logic would run a
+    // second time and double-fire the action we're already handling
+    private static boolean replaying = false;
+
     public static InteractionResult onUseBlock(Player player, Level level, InteractionHand hand,
                                                  BlockHitResult hitResult) {
+        if (replaying) {
+            return InteractionResult.PASS;
+        }
         BlockPos pos = hitResult.getBlockPos();
         BlockState state = level.getBlockState(pos);
         if (!(state.getBlock() instanceof SignBlock)) {
@@ -96,17 +86,14 @@ public final class SignInteractionHandler {
         boolean clickThroughWouldApply = invisible ? config.clickThroughInvisibleSigns : config.clickThroughVisibleSigns;
 
         if (gesture == GestureResolver.Gesture.INTERACT) {
-            // Modded clients must not rely on PASS for the editor: vanilla
-            // suppresses block use entirely while sneaking with anything in
-            // EITHER hand (a shield in the offhand is enough), so a PASSed
-            // shift-click would silently do nothing. With an empty main hand
-            // the client therefore sends the force-interact payload (the same
-            // path the keybind role uses) and the server opens the editor
-            // directly. With an item in the main hand, PASS keeps vanilla's
-            // item behavior (sneak-placing a block against the sign, dyeing
-            // its text, ...) - unless require_empty_hand_for_interaction is
-            // turned off, in which case the editor is forced open regardless
-            // of what's in hand.
+            // can't just PASS here on a modded client: vanilla suppresses block
+            // use entirely while sneaking with anything in either hand (even a
+            // shield in the offhand), so a plain PASS would silently eat the
+            // shift-click. with an empty main hand we force it open via the
+            // same payload the keybind uses. with an item in hand, PASS keeps
+            // vanilla behavior (sneak-placing a block, dyeing the sign, ...)
+            // unless require_empty_hand_for_interaction is off, in which case
+            // we force the editor open regardless of what's in hand
             boolean interactHandOk = !config.requireEmptyHandForInteraction || handEmpty;
             if ((level.isClientSide() && interactHandOk) || (keybindDown && clickThroughWouldApply && interactHandOk)) {
                 InvisibleItemFramesClient.sendForceInteractSign(pos);
@@ -130,7 +117,7 @@ public final class SignInteractionHandler {
         return InteractionResult.PASS;
     }
 
-    /** Flips the sign's invisible property; caller has validated everything. */
+    // flips the sign's invisible property; caller has validated everything
     static void toggleSign(Level level, BlockPos pos, BlockState state, Player player) {
         boolean nowInvisible = !state.getValue(SignProperties.INVISIBLE);
         level.setBlockAndUpdate(pos, state.setValue(SignProperties.INVISIBLE, nowInvisible));
@@ -139,49 +126,48 @@ public final class SignInteractionHandler {
                 nowInvisible ? "invisible" : "visible");
     }
 
-    /**
-     * Toggle used by the network receiver: re-checks that the block is still
-     * a sign before flipping it.
-     */
+    // toggle used by the network receiver (keybind path): re-checks it's
+    // still a sign and gives other mods a chance to veto before flipping it,
+    // since this path never goes through the normal event chain otherwise
     public static void toggleSignIfSigned(Level level, BlockPos pos, Player player) {
         BlockState state = level.getBlockState(pos);
-        if (state.getBlock() instanceof SignBlock) {
+        if (state.getBlock() instanceof SignBlock && otherModsAllow(player, level, pos)) {
             toggleSign(level, pos, state, player);
         }
     }
 
-    /**
-     * Click-through used by the network receiver: re-checks the sign, then
-     * forwards the interaction to the block behind it.
-     */
+    // click-through used by the network receiver: re-checks the sign, then
+    // forwards the interaction to the block behind it
     public static void clickThroughIfSigned(Player player, Level level, BlockPos signPos) {
         if (level.getBlockState(signPos).getBlock() instanceof SignBlock) {
             clickThrough(level, signPos, player);
         }
     }
 
-    /**
-     * Forced-interact used by the network receiver when the keybind (swap
-     * on) overrides click-through: runs vanilla's own sign-use handling
-     * directly, bypassing this mod's click-through logic entirely.
-     */
+    // forced-interact used by the network receiver when the keybind (swap on)
+    // overrides click-through: runs vanilla's own sign-use handling directly,
+    // bypassing this mod's click-through logic entirely
     public static void forceInteractIfSigned(Player player, Level level, BlockPos signPos) {
         BlockState state = level.getBlockState(signPos);
         if (!(state.getBlock() instanceof SignBlock)) {
+            return;
+        }
+        if (!otherModsAllow(player, level, signPos)) {
             return;
         }
         BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(signPos), Direction.UP, signPos, false);
         state.useWithoutItem(level, player, hit);
     }
 
-    /**
-     * Forwards the interaction to whatever block the crosshair ray reaches
-     * beyond the sign (typically the chest or other container it sits in
-     * front of). Runs on the server only.
-     */
+    // forwards the interaction to whatever block the crosshair ray reaches
+    // beyond the sign (typically the chest or other container it sits in
+    // front of). runs on the server only
     static InteractionResult clickThrough(Level level, BlockPos signPos, Player player) {
         BlockHitResult target = ItemFrameInteractionHandler.findClickThroughTarget(player, level, signPos);
         if (target == null) {
+            return InteractionResult.PASS;
+        }
+        if (!otherModsAllow(player, level, target.getBlockPos())) {
             return InteractionResult.PASS;
         }
         return level.getBlockState(target.getBlockPos())
@@ -193,5 +179,22 @@ public final class SignInteractionHandler {
             return true;
         }
         return player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);
+    }
+
+    // Replays UseBlockCallback for pos with our own listener silenced (see the
+    // "replaying" guard above), so any land claim / protection mod hooked into
+    // the same event still gets a say. Needed for anything triggered by the
+    // network payload above: those actions run outside the normal click flow,
+    // so without this a keybind click could toggle or edit a sign, or reach
+    // through to a protected chest, in a claim that would otherwise block it.
+    static boolean otherModsAllow(Player player, Level level, BlockPos pos) {
+        BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false);
+        replaying = true;
+        try {
+            return UseBlockCallback.EVENT.invoker().interact(player, level, InteractionHand.MAIN_HAND, hit)
+                    == InteractionResult.PASS;
+        } finally {
+            replaying = false;
+        }
     }
 }
