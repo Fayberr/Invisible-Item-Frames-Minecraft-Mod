@@ -108,7 +108,7 @@ public final class SignInteractionHandler {
         return InteractionResult.PASS;
     }
 
-    /** Flips the sign's invisible property; caller has validated everything. */
+    // Flips the sign's invisible property; caller has validated everything.
     static void toggleSign(Level level, BlockPos pos, BlockState state, Player player) {
         boolean nowInvisible = !state.getValue(SignProperties.INVISIBLE);
         level.setBlockAndUpdate(pos, state.setValue(SignProperties.INVISIBLE, nowInvisible));

@@ -4,13 +4,11 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fayber.invisibleitemframes.InvisibleItemFramesNetworking;
 import net.minecraft.core.BlockPos;
 
-/**
- * Client-only glue: forwards one interaction intent to the server as an
- * {@link InvisibleItemFramesNetworking#INTERACT_TYPE} payload. Only ever
- * class-loaded on the physical client (the common handlers call it from
- * {@code level.isClientSide()} branches), so a dedicated server never loads
- * the client networking classes.
- */
+// Client-only glue: forwards one interaction intent to the server as an
+// InvisibleItemFramesNetworking#INTERACT_TYPE payload. Only ever
+// class-loaded on the physical client (the common handlers call it from
+// level.isClientSide() branches), so a dedicated server never loads
+// the client networking classes.
 public final class InvisibleItemFramesClient {
     private InvisibleItemFramesClient() {}
 

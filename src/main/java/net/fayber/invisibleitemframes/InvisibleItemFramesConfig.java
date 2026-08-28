@@ -54,7 +54,7 @@ public final class InvisibleItemFramesConfig {
         return INSTANCE;
     }
 
-    /** Loads {@code config/invisibleitemframes.json} into the shared instance, then writes it back. */
+    // Loads config/invisibleitemframes.json into the shared instance, then writes it back.
     public static void load() {
         if (Files.exists(PATH)) {
             try {
@@ -113,7 +113,7 @@ public final class InvisibleItemFramesConfig {
         }
     }
 
-    /** Sets a key by name (command / ModMenu); returns false if unknown. */
+    // Sets a key by name (command / ModMenu); returns false if unknown.
     public static boolean set(String key, String value) {
         InvisibleItemFramesConfig c = INSTANCE;
         switch (key.toLowerCase()) {
@@ -140,7 +140,7 @@ public final class InvisibleItemFramesConfig {
         return true;
     }
 
-    /** Sets the keybind (key code + modifiers) directly; used by config screens. */
+    // Sets the keybind (key code + modifiers) directly; used by config screens.
     public static void setKeybind(int keyCode, boolean alt, boolean control, boolean shift) {
         InvisibleItemFramesConfig c = INSTANCE;
         c.keybindKeyCode = keyCode;
@@ -150,7 +150,7 @@ public final class InvisibleItemFramesConfig {
         save();
     }
 
-    /** Reads a boolean key; the ModMenu screen uses this so key names stay in one place. */
+    // Reads a boolean key; the ModMenu screen uses this so key names stay in one place.
     public static boolean getBool(String key) {
         InvisibleItemFramesConfig c = INSTANCE;
         return switch (key.toLowerCase()) {
@@ -195,7 +195,7 @@ public final class InvisibleItemFramesConfig {
                 + ", keybind_shift=" + keybindShift;
     }
 
-    /** JSON shape on disk; boxed so missing keys keep their defaults. */
+    // JSON shape on disk; boxed so missing keys keep their defaults.
     private static class Raw {
         Boolean enable_item_frame_toggle;
         Boolean affect_glow_item_frames;

@@ -10,11 +10,9 @@ import me.shedaniel.clothconfig2.api.ModifierKeyCode;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-/**
- * Cloth Config based config screen (the nicer ModMenu GUI). Optional
- * dependency: when Cloth Config is installed, ModMenu opens this instead of
- * the hand-rolled {@link InvisibleItemFramesConfigScreen}.
- */
+// Cloth Config based config screen (the nicer ModMenu GUI). Optional
+// dependency: when Cloth Config is installed, ModMenu opens this instead of
+// the hand-rolled InvisibleItemFramesConfigScreen.
 public final class InvisibleItemFramesClothScreen {
     private InvisibleItemFramesClothScreen() {}
 

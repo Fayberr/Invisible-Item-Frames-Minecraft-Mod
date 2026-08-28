@@ -174,7 +174,7 @@ public final class InvisibleItemFramesNetworking {
         ItemFrameInteractionHandler.forceInteract(player, frame, InteractionHand.MAIN_HAND);
     }
 
-    /** Payload sent by the mod's client to request one interaction action. */
+    // Payload sent by the mod's client to request one interaction action.
     public record InteractPayload(int kind, long pos, int entityId) implements CustomPacketPayload {
         public static final int TOGGLE_SIGN = 0;
         public static final int TOGGLE_FRAME = 1;

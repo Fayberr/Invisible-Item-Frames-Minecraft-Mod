@@ -110,7 +110,7 @@ public final class ItemFrameInteractionHandler {
         return InteractionResult.PASS;
     }
 
-    /** Flips the frame's invisibility flag; caller has validated everything. */
+    // Flips the frame's invisibility flag; caller has validated everything.
     static void toggleFrame(ItemFrame frame) {
         frame.setInvisible(!frame.isInvisible());
     }
