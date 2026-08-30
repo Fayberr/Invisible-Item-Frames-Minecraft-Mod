@@ -66,6 +66,9 @@ public class InvisibleItemFramesMod implements ModInitializer {
     }
 
     private static boolean isOperator(CommandSourceStack source) {
+        if (source.getServer().isSingleplayer()) {
+            return true;
+        }
         return source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);
     }
 
