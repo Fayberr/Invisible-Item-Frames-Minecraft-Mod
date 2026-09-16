@@ -2,7 +2,7 @@ package net.fayber.invisibleitemframes;
 
 import net.fayber.invisibleitemframes.client.InvisibleItemFramesClient;
 import net.fayber.invisibleitemframes.client.InvisibleItemFramesClientKeybind;
-import net.fayber.invisibleitemframes.sign.SignProperties;
+import net.fayber.invisibleitemframes.sign.IInvisibleSign;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.permissions.Permissions;
@@ -12,6 +12,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.SignBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -19,10 +21,9 @@ import net.minecraft.world.phys.Vec3;
 // Same three-gesture interaction model as item frames (see GestureResolver
 // and ItemFrameInteractionHandler), applied to signs.
 //
-// Signs have no vanilla "invisible" flag, so we add our own blockstate
-// property (SignProperties.INVISIBLE, registered in SignBlockMixin) and flip
-// it with Level#setBlockAndUpdate, which also handles the client-side chunk
-// remesh that a plain block entity data change wouldn't trigger.
+// Invisibility is stored directly on SignBlockEntity (IInvisibleSign duck interface)
+// without polluting the global BlockState registry. When toggled, we update
+// the block entity and call level.sendBlockUpdated to sync and refresh clients.
 //
 // UseBlockCallback fires on both sides just like UseEntityCallback, so the
 // keybind check lives directly in this handler's client branch too - no
@@ -78,7 +79,7 @@ public final class SignInteractionHandler {
             return InteractionResult.SUCCESS;
         }
 
-        boolean invisible = state.getValue(SignProperties.INVISIBLE);
+        boolean invisible = isSignInvisible(level, pos);
         boolean clickThroughWouldApply = invisible ? config.clickThroughInvisibleSigns : config.clickThroughVisibleSigns;
 
         if (gesture == GestureResolver.Gesture.INTERACT) {
@@ -108,10 +109,22 @@ public final class SignInteractionHandler {
         return InteractionResult.PASS;
     }
 
-    // Flips the sign's invisible property; caller has validated everything.
+    public static boolean isSignInvisible(Level level, BlockPos pos) {
+        BlockEntity be = level.getBlockEntity(pos);
+        return be instanceof IInvisibleSign sign && sign.iif$isInvisible();
+    }
+
+    // Flips the sign's invisible property on the block entity; caller has validated everything.
     static void toggleSign(Level level, BlockPos pos, BlockState state, Player player) {
-        boolean nowInvisible = !state.getValue(SignProperties.INVISIBLE);
-        level.setBlockAndUpdate(pos, state.setValue(SignProperties.INVISIBLE, nowInvisible));
+        BlockEntity be = level.getBlockEntity(pos);
+        if (!(be instanceof SignBlockEntity signBe)) {
+            return;
+        }
+        IInvisibleSign sign = (IInvisibleSign) signBe;
+        boolean nowInvisible = !sign.iif$isInvisible();
+        sign.iif$setInvisible(nowInvisible);
+        signBe.setChanged();
+        level.sendBlockUpdated(pos, state, state, 3);
         InvisibleItemFramesMod.LOGGER.info("{} toggled a sign at ({}, {}, {}) {}",
                 player.getGameProfile().name(), pos.getX(), pos.getY(), pos.getZ(),
                 nowInvisible ? "invisible" : "visible");
