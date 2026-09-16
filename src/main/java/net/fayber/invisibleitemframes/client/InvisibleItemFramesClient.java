@@ -2,7 +2,10 @@ package net.fayber.invisibleitemframes.client;
 
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fayber.invisibleitemframes.InvisibleItemFramesNetworking;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
 
 // Client-only glue: forwards one interaction intent to the server as an
 // InvisibleItemFramesNetworking#INTERACT_TYPE payload. Only ever
@@ -11,6 +14,22 @@ import net.minecraft.core.BlockPos;
 // the client networking classes.
 public final class InvisibleItemFramesClient {
     private InvisibleItemFramesClient() {}
+
+    // Forces the chunk section containing pos (and its neighbors, to avoid
+    // seam gaps) to rebuild its baked mesh. Needed because SignBlockEntityMixin
+    // can't rely on a BlockState diff to trigger the rebuild - see the comment
+    // there for why sendBlockUpdated(pos, state, state, ...) is a no-op here.
+    // Called only from a level.isClientSide() branch in that common mixin, so
+    // this ClientLevel reference never gets resolved on a dedicated server.
+    public static void signVisibilityChanged(BlockPos pos) {
+        if (!(Minecraft.getInstance().level instanceof ClientLevel clientLevel)) {
+            return;
+        }
+        clientLevel.setSectionDirtyWithNeighbors(
+                SectionPos.blockToSectionCoord(pos.getX()),
+                SectionPos.blockToSectionCoord(pos.getY()),
+                SectionPos.blockToSectionCoord(pos.getZ()));
+    }
 
     public static void sendToggleSign(BlockPos signPos) {
         ClientPlayNetworking.send(new InvisibleItemFramesNetworking.InteractPayload(
