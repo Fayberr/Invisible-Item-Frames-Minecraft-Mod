@@ -2,7 +2,6 @@ package net.fayber.invisibleitemframes;
 
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.fayber.invisibleitemframes.sign.SignProperties;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -125,7 +124,7 @@ public final class InvisibleItemFramesNetworking {
         if (!(state.getBlock() instanceof SignBlock)) {
             return;
         }
-        boolean invisible = state.getValue(SignProperties.INVISIBLE);
+        boolean invisible = SignInteractionHandler.isSignInvisible(player.level(), signPos);
         boolean clickThroughWouldApply = invisible ? config.clickThroughInvisibleSigns : config.clickThroughVisibleSigns;
         if (!clickThroughWouldApply) {
             return;

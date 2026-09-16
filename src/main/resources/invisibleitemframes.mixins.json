@@ -3,8 +3,7 @@
 	"package": "net.fayber.invisibleitemframes.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
-		"SignBlockMixin",
-		"SignBlockDefaultStateMixin"
+		"SignBlockEntityMixin"
 	],
 	"client": [
 		"client.AbstractSignRendererMixin"
