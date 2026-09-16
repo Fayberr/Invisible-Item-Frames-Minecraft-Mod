@@ -1,19 +1,34 @@
 package net.fayber.invisibleitemframes.client;
 
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fayber.invisibleitemframes.InvisibleItemFramesNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
+import net.minecraft.world.level.block.SignBlock;
 
 // Client-only glue: forwards one interaction intent to the server as an
 // InvisibleItemFramesNetworking#INTERACT_TYPE payload. Only ever
 // class-loaded on the physical client (the common handlers call it from
 // level.isClientSide() branches), so a dedicated server never loads
 // the client networking classes.
-public final class InvisibleItemFramesClient {
-    private InvisibleItemFramesClient() {}
+public final class InvisibleItemFramesClient implements ClientModInitializer {
+    public InvisibleItemFramesClient() {}
+
+    @Override
+    public void onInitializeClient() {
+        ModelLoadingPlugin.register(pluginContext -> {
+            pluginContext.modifyBlockModelAfterBake().register((model, context) -> {
+                if (context.state().getBlock() instanceof SignBlock) {
+                    return new InvisibleSignBlockStateModel(model);
+                }
+                return model;
+            });
+        });
+    }
 
     // Forces the chunk section containing pos (and its neighbors, to avoid
     // seam gaps) to rebuild its baked mesh. Needed because SignBlockEntityMixin

@@ -18,13 +18,15 @@
 		"main": [
 			"net.fayber.invisibleitemframes.InvisibleItemFramesMod"
 		],
+		"client": [
+			"net.fayber.invisibleitemframes.client.InvisibleItemFramesClient"
+		],
 		"modmenu": [
 			"net.fayber.invisibleitemframes.InvisibleItemFramesModMenu"
 		]
 	},
 	"mixins": [
-		"invisibleitemframes.mixins.json",
-		"invisibleitemframes-sodium.mixins.json"
+		"invisibleitemframes.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=${loader_version}",

@@ -27,14 +27,6 @@ dependencies {
 	// Extra mods as compileOnly (no remap needed on 26.1+):
 	compileOnly "com.terraformersmc:modmenu:18.0.0"
 	compileOnly "me.shedaniel.cloth:cloth-config-fabric:26.1.154"
-
-	// Sodium, compileOnly: only used by the optional sodium-compat mixin module
-	// (see SodiumCompatMixinPlugin), which self-disables at runtime when Sodium
-	// isn't installed. Not pulled from a Maven repo (Sodium doesn't publish to
-	// one we already use) and not redistributed in this repo (Polyform Shield
-	// license) - place sodium-fabric-0.9.2+mc26.2.jar (from Modrinth) in libs/
-	// (gitignored) locally to build this module against real Sodium classes.
-	compileOnly files('libs/sodium-fabric-0.9.2+mc26.2.jar')
 }
 
 processResources {
