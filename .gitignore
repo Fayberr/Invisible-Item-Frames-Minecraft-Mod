@@ -24,3 +24,6 @@ bin/
 
 # macos
 .DS_Store
+
+# vendored compile-only jars (not redistributed - see build.gradle comment)
+libs/

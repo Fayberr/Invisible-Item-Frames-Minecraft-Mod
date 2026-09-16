@@ -23,7 +23,8 @@
 		]
 	},
 	"mixins": [
-		"invisibleitemframes.mixins.json"
+		"invisibleitemframes.mixins.json",
+		"invisibleitemframes-sodium.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=${loader_version}",
